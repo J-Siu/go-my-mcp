@@ -75,10 +75,6 @@ The same string is reported to MCP clients as `serverInfo.version` and shown by 
 go-my-mcp start
 ```
 
-```text
-MCP server listening on :9000
-```
-
 The MCP endpoint is served at `/mcp` using the streamable HTTP transport:
 
 ```text
@@ -229,6 +225,25 @@ These are persistent (root) flags, so they work with every sub command:
 | | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
 | | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
 | `-d`, `--debug` | `Debug` | `false` | Debug logging |
+
+### Logging
+
+Logs go to **stderr** as [slog](https://pkg.go.dev/log/slog) text, so they never mix with `config`/`version` output on stdout:
+
+```text
+time=2026-11-02T06:06:43.255-05:00 level=DEBUG msg=TypeWebFetch.Fetch url=http://example.com/start
+time=2026-11-02T06:06:43.256-05:00 level=DEBUG msg=TypeWebFetch.Fetch redirect=1 to=http://example.com/mid
+time=2026-11-02T06:06:43.256-05:00 level=DEBUG msg=TypeWebFetch.Fetch status=200 content_len=12 content_type=application/json
+time=2026-11-02T06:06:43.257-05:00 level=ERROR msg=TypeWebFetch.Fetch status=404 content_len=0 err="HTTP 404 Not Found"
+```
+
+`Debug: false` (the default) keeps the level at `INFO`, where the tools are silent — only errors reaching the MCP client are surfaced, and the client already receives them.
+
+```sh
+go-my-mcp start --debug        # or Debug: true / GO_MY_MCP_DEBUG=true
+```
+
+Debug adds one line per request (URL, each redirect hop, status, body length), plus the resolved tool settings at startup. Response bodies are never logged — they are returned to the client.
 
 ## MCP client setup
 

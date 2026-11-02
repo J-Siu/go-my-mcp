@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/url"
 
+	"log/slog"
+
 	"fj.vms.local/jsds/go-helper-mini/basestruct"
-	"fj.vms.local/jsds/go-helper-mini/ezlog"
-	"fj.vms.local/jsds/go-helper-mini/str"
 	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -30,9 +30,10 @@ func (t *TypeSearXng) New(searXngUrl string, bodySizeMax int64) (searXng *TypeSe
 	} else {
 		t.Err = fmt.Errorf("%s: %s", prefix, t.Err.Error())
 	}
-	if t.Debug {
-		ezlog.L.Println(str.Struct2String(prefix, t))
-	}
+	slog.Debug(prefix, "config", slog.GroupValue(
+		slog.String("SearXngUrl", t.SearXNG_URL),
+		slog.Int64("BodySizeMax", t.BodySizeMax),
+	))
 	return t, t.Err
 }
 
@@ -47,8 +48,6 @@ func (t *TypeSearXng) Register(mcpServer *mcp.Server) {
 				Description: "web search"},
 			t.Search,
 		)
-		if t.Debug {
-			ezlog.L.Println(prefix + ": registered")
-		}
+		slog.Debug(prefix + ": registered")
 	}
 }

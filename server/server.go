@@ -1,12 +1,11 @@
 package server
 
 import (
-	"fmt"
+	"errors"
+	"log/slog"
 	"net/http"
 
 	"fj.vms.local/jsds/go-helper-mini/basestruct"
-	"fj.vms.local/jsds/go-helper-mini/ezlog"
-	"fj.vms.local/jsds/go-helper-mini/str"
 	"fj.vms.local/jsds/go-my-mcp/global"
 	"fj.vms.local/jsds/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -37,14 +36,15 @@ func (t *TypeServer) Register(tool tool.Tool) *TypeServer {
 }
 
 func (t *TypeServer) Run() error {
-	prefix := t.MyType + ".Runs"
+	prefix := t.MyType + ".Run"
 	// MCP server using mcp go-sdk
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 		return t.McpServer
 	}, nil)
-	if t.Debug {
-		ezlog.L.Println(str.Struct2String(prefix, t))
-	}
+	slog.Debug(prefix, "listen", t.ListenAddress)
 	t.Err = http.ListenAndServe(t.ListenAddress, handler)
-	return fmt.Errorf("%s: %s", prefix, t.Err)
+	if t.Err != nil {
+		return errors.New(prefix + ": " + t.Err.Error())
+	}
+	return nil
 }

@@ -6,12 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"fj.vms.local/jsds/go-helper-mini/ezlog"
-	"fj.vms.local/jsds/go-helper-mini/str"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -53,10 +51,8 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 		t.Err = fmt.Errorf("search query must not be empty")
 	}
 	// prepare search endpoint
+	slog.Debug(prefix, "query", input.Query)
 	if t.Err == nil {
-		if t.Debug {
-			ezlog.L.Println(prefix+":", input.Query)
-		}
 		endpoint_str, t.Err = url.JoinPath(t.SearXNG_URL, "search")
 	}
 	if t.Err == nil {
@@ -68,9 +64,7 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 		query.Set("q", input.Query)
 		query.Set("format", "json")
 		httpUrl.RawQuery = query.Encode()
-		if t.Debug {
-			ezlog.L.Println(prefix+": httpUrl: ", httpUrl.String())
-		}
+		slog.Debug(prefix, "url", httpUrl.String())
 		httpReq, t.Err = http.NewRequestWithContext(ctx, http.MethodGet, httpUrl.String(), nil)
 	}
 	// http header and request
@@ -105,11 +99,11 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 			t.Err = fmt.Errorf("json.Unmarshal: %s", t.Err.Error())
 		}
 	}
-	if t.Err == nil && t.Debug {
-		ezlog.L.Println(str.Struct2String(prefix+": result", result))
-	}
 	if t.Err != nil {
-		ezlog.L.Println(fmt.Errorf("%s: Error: %s", prefix, t.Err.Error()))
+		// the caller only gets the error text, so keep the details here
+		slog.Error(prefix, "err", t.Err.Error())
+	} else if slog.Default().Enabled(ctx, slog.LevelDebug) {
+		slog.Debug(prefix, "results", len(result.Results))
 	}
 	return nil, result, t.Err
 }

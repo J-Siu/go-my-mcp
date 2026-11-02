@@ -17,7 +17,6 @@ var startCmd = &cobra.Command{
 	Aliases: []string{"s"},
 	Short:   "Start the SearXNG MCP server over HTTP",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.Printf("MCP server listening on %s\n", global.Conf.ListenAddress)
 		var (
 			mcpSrv = new(server.TypeServer)
 			sx     = new(searxng.TypeSearXng)
@@ -29,17 +28,16 @@ var startCmd = &cobra.Command{
 			wf, err = wf.New(global.Conf.FetchBodySizeMax, global.Conf.RedirectMax)
 		}
 		if err == nil {
-			if global.Conf.Debug {
-				mcpSrv.Debug = true
-				sx.Debug = true
-				wf.Debug = true
-			}
 			sx.TlsCheck = false
 			err = mcpSrv.
 				New(global.Conf.ListenAddress).
 				Register(sx).
 				Register(wf).
 				Run()
+		}
+		if err != nil {
+			// a bind failure is an environment problem, not a usage error
+			cmd.SilenceUsage = true
 		}
 		return err
 	},

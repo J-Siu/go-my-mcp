@@ -161,6 +161,9 @@ func init() {
 	Vip.SetDefault(keyFetchBodySizeMax, DefaultFetchBodySizeMax)
 	Vip.SetDefault(keySearchBodySizeMax, DefaultSearchBodySizeMax)
 	Vip.SetDefault(keyDebug, false)
+
+	// keep the logger correct even before the first Load (e.g. init-time errors)
+	SetupLog(false)
 }
 
 func (t *TypeConf) New() *TypeConf {
@@ -212,6 +215,9 @@ func (t *TypeConf) Load() error {
 		t.ListenAddress = values.ListenAddress
 		t.SearXngUrl = values.SearXngUrl
 		t.Debug = Vip.GetBool(keyDebug)
+		// setup the logger before validating, so a config error is also reported
+		// at the level the user asked for
+		SetupLog(t.Debug)
 		// read the numeric keys directly; Unmarshal does not resolve them reliably
 		t.RedirectMax = Vip.GetInt(keyRedirectMax)
 		t.FetchBodySizeMax = Vip.GetInt64(keyFetchBodySizeMax)

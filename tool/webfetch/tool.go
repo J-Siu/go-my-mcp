@@ -1,9 +1,9 @@
 package webfetch
 
 import (
+	"log/slog"
+
 	"fj.vms.local/jsds/go-helper-mini/basestruct"
-	"fj.vms.local/jsds/go-helper-mini/ezlog"
-	"fj.vms.local/jsds/go-helper-mini/str"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -19,9 +19,10 @@ func (t *TypeWebFetch) New(bodySizeMax int64, redirectMax int) (webFetch *TypeWe
 	t.BodySizeMax = bodySizeMax
 	t.RedirectMax = redirectMax
 	t.Initialized = true
-	if t.Debug {
-		ezlog.L.Println(str.Struct2String(prefix, t))
-	}
+	slog.Debug(prefix, "config", slog.GroupValue(
+		slog.Int64("BodySizeMax", t.BodySizeMax),
+		slog.Int("RedirectMax", t.RedirectMax),
+	))
 	return t, t.Err
 }
 
@@ -36,8 +37,6 @@ func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 				Description: "fetch a web page by URL, following redirects"},
 			t.Fetch,
 		)
-		if t.Debug {
-			ezlog.L.Println(prefix + ": registered")
-		}
+		slog.Debug(prefix + ": registered")
 	}
 }

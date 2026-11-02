@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
-	"fj.vms.local/jsds/go-helper-mini/ezlog"
 	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -44,7 +44,7 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 
 	url_target, t.Err = lib.UrlParse(input.URL)
 	if t.Err == nil {
-		ezlog.L.Println(prefix+":", input.URL)
+		slog.Debug(prefix, "url", input.URL)
 		result.URL = url_target.String()
 		httpReq, t.Err = http.NewRequestWithContext(ctx, http.MethodGet, url_target.String(), nil)
 	}
@@ -66,9 +66,7 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 				if _, err := lib.UrlParse(req.URL.String()); err != nil {
 					return fmt.Errorf("redirect rejected: %s", err.Error())
 				}
-				if t.Debug {
-					ezlog.L.Println(prefix+": redirect", redirects, "->", req.URL.String())
-				}
+				slog.Debug(prefix, "redirect", redirects, "to", req.URL.String())
 				return nil
 			},
 		}
@@ -95,11 +93,16 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 	if t.Err == nil && len(body) > int(t.BodySizeMax) {
 		t.Err = fmt.Errorf("Exceeds the %d-byte limit", t.BodySizeMax)
 	}
-	if t.Err == nil && t.Debug {
-		ezlog.L.Println(string(body))
-	}
 	if t.Err != nil {
-		ezlog.L.Println(fmt.Errorf("%s: Error: %s", prefix, t.Err.Error()))
+		// the caller only gets the error text, so keep the details here
+		slog.Error(prefix, "status", result.StatusCode, "content_len", len(body),
+			"content_type", result.ContentType, "err", t.Err.Error())
+	} else if slog.Default().Enabled(ctx, slog.LevelDebug) {
+		attrs := []any{"status", result.StatusCode, "content_len", len(body)}
+		if result.ContentType != "" {
+			attrs = append(attrs, "content_type", result.ContentType)
+		}
+		slog.Debug(prefix, attrs...)
 	}
 	result.Content = string(body)
 	return nil, result, t.Err
