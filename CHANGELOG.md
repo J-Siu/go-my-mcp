@@ -1,3 +1,10 @@
+- v1.0.2
+  - Access control
+    - Added `ApiKey`, a shared secret required on every request when set; both `Authorization: Bearer <key>` and `X-API-Key: <key>` are accepted
+    - Keys are compared in constant time; rejected requests get `401` with a `WWW-Authenticate: Bearer` challenge and a `WARN` log carrying the remote address
+    - An empty `ApiKey` disables the check, so existing deployments keep working without a key
+    - `ApiKey` can only be set from the config file or `GO_MY_MCP_APIKEY`, not from a flag, to keep it out of shell history and `ps` output
+    - `config` reports `ApiKey` as `<redacted>` and lists its origin under `Source`
 - v1.0.1
   - Configuration
     - Migrated from hard-coded constants to cobra/viper, with precedence defaults < config file < environment < flags

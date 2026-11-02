@@ -90,6 +90,7 @@ go-my-mcp config
 ```json
 {
   "FileConf": "~/.config/go-my-mcp.json",
+  "ApiKey": "",
   "ListenAddress": ":9000",
   "SearXngUrl": "http://xng.vms.local",
   "RedirectMax": 10,
@@ -98,6 +99,7 @@ go-my-mcp config
   "Debug": false,
   "Version": "v1.0.0",
   "Source": {
+    "ApiKey": "default",
     "Debug": "default",
     "FetchBodySizeMax": "default",
     "FileConf": "default",
@@ -109,6 +111,7 @@ go-my-mcp config
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
+      "GO_MY_MCP_APIKEY",
       "GO_MY_MCP_FILECONF",
       "GO_MY_MCP_LISTENADDRESS",
       "GO_MY_MCP_SEARXNGURL",
@@ -143,6 +146,7 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
 ```json
 {
   "FileConf": "~/.config/go-my-mcp.json",
+  "ApiKey": "",
   "ListenAddress": "127.0.0.1:8080",
   "SearXngUrl": "http://xng.vms.local",
   "RedirectMax": 10,
@@ -151,6 +155,7 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "Debug": false,
   "Version": "v1.0.0",
   "Source": {
+    "ApiKey": "default",
     "Debug": "default",
     "FetchBodySizeMax": "default",
     "FileConf": "default",
@@ -162,6 +167,7 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
+      "GO_MY_MCP_APIKEY",
       "GO_MY_MCP_FILECONF",
       "GO_MY_MCP_LISTENADDRESS",
       "GO_MY_MCP_SEARXNGURL",
@@ -235,11 +241,14 @@ Example:
 
 | Key | Type | Default | Description |
 | --- | --- | --- | --- |
+| `ApiKey` | string | *(empty)* | Shared secret clients must present; empty disables access control |
 | `ListenAddress` | string | `:9000` | Address the HTTP server listens on |
 | `SearXngUrl` | string | `http://xng.vms.local` | Base URL of the SearXNG instance |
 | `RedirectMax` | int | `10` | Max redirects followed by `web_fetch`; `0` disables following |
 | `FetchBodySizeMax` | int | `2097152` (2 MiB) | `web_fetch` response body limit in bytes |
 | `SearchBodySizeMax` | int | `2097152` (2 MiB) | `searxng_search` response body limit in bytes |
+
+`ApiKey` has no flag — it is read from the config file or the environment only, so it stays out of shell history and `ps` output. `config` always shows it as `<redacted>`.
 
 `RedirectMax` must be `>= 0`; the body limits must be `> 0`. Out-of-range values are rejected at startup instead of silently misbehaving.
 
@@ -264,6 +273,39 @@ These are persistent (root) flags, so they work with every sub command:
 | | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
 | | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
 | `-d`, `--debug` | `Debug` | `false` | Debug logging |
+
+### Access control
+
+Set `ApiKey` (via `GO_MY_MCP_APIKEY` or the config file) to require a key on **every** request — the MCP handshake included, since the server is usually reachable over the network:
+
+```sh
+GO_MY_MCP_APIKEY=s3cr3t go-my-mcp start
+```
+
+Clients may present it either way:
+
+```sh
+curl -H "Authorization: Bearer s3cr3t"   ...   # standard bearer token
+curl -H "X-API-Key: s3cr3t"              ...   # simpler, common for machine clients
+```
+
+Requests without a valid key get `401 Unauthorized` plus a `WWW-Authenticate: Bearer` challenge, and are logged at `WARN` with the remote address. The comparison is constant time. If `Authorization` is present but malformed (e.g. `Basic ...`), it is rejected rather than falling back to `X-API-Key`.
+
+When `ApiKey` is empty the server requires nothing, so an existing setup keeps working. That also means an unset key is *not* a safe default for an exposed host — set one there.
+
+For VS Code `mcp.json`, add the header to the server entry:
+
+```json
+{
+  "servers": {
+    "go-my-mcp": {
+      "type": "http",
+      "url": "http://localhost:9000/mcp",
+      "headers": { "Authorization": "Bearer s3cr3t" }
+    }
+  }
+}
+```
 
 ### Logging
 
