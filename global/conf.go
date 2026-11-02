@@ -29,8 +29,7 @@ import (
 	"os"
 	"strings"
 
-	"fj.vms.local/jsds/go-helper-mini/basestruct"
-	"fj.vms.local/jsds/go-helper-mini/errs"
+	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/spf13/viper"
 )
 
@@ -79,7 +78,7 @@ var Conf TypeConf
 var Vip = viper.New()
 
 type TypeConf struct {
-	basestruct.Embedded
+	lib.Embedded
 	// Shared secret required from clients. Empty disables access control.
 	ApiKey            string `json:"ApiKey"`
 	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
@@ -251,13 +250,13 @@ func (t *TypeConf) Load() error {
 	}
 	Vip.SetConfigFile(TildeEnvExpand(t.FileConf))
 	if err := Vip.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		t.Err = errs.New(prefix, err.Error())
+		t.Err = lib.ErrNew(prefix, err.Error())
 	}
 
 	var values typeConfValues
 	if t.Err == nil {
 		if t.Err = Vip.Unmarshal(&values); t.Err != nil {
-			t.Err = errs.New(prefix, t.Err.Error())
+			t.Err = lib.ErrNew(prefix, t.Err.Error())
 		}
 	}
 
@@ -286,11 +285,11 @@ func (t *TypeConf) validate() error {
 	prefix := t.MyType + ".Load"
 	switch {
 	case t.RedirectMax < 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be >= 0, got %d", KeyRedirectMax, t.RedirectMax))
+		return lib.ErrNew(prefix, fmt.Sprintf("%s must be >= 0, got %d", KeyRedirectMax, t.RedirectMax))
 	case t.FetchBodySizeMax <= 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", KeyFetchBodySizeMax, t.FetchBodySizeMax))
+		return lib.ErrNew(prefix, fmt.Sprintf("%s must be > 0, got %d", KeyFetchBodySizeMax, t.FetchBodySizeMax))
 	case t.SearchBodySizeMax <= 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", KeySearchBodySizeMax, t.SearchBodySizeMax))
+		return lib.ErrNew(prefix, fmt.Sprintf("%s must be > 0, got %d", KeySearchBodySizeMax, t.SearchBodySizeMax))
 	}
 	return nil
 }

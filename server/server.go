@@ -5,14 +5,14 @@ import (
 	"log/slog"
 	"net/http"
 
-	"fj.vms.local/jsds/go-helper-mini/basestruct"
 	"fj.vms.local/jsds/go-my-mcp/global"
+	"fj.vms.local/jsds/go-my-mcp/lib"
 	"fj.vms.local/jsds/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TypeServer struct {
-	basestruct.Embedded
+	lib.Embedded
 
 	ListenAddress string
 	McpServer     *mcp.Server

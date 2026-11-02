@@ -3,7 +3,6 @@ module fj.vms.local/jsds/go-my-mcp
 go 1.27.2
 
 require (
-	fj.vms.local/jsds/go-helper-mini v0.0.0-20260930231937-b2d360a84263
 	github.com/charlievieth/strcase v0.0.6
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/spf13/cobra v1.10.2

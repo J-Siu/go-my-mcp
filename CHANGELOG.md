@@ -1,3 +1,5 @@
+- v1.0.3
+  - Remove helper-mini dependency
 - v1.0.2
   - Access control
     - Added `ApiKey`, a shared secret required on every request when set; both `Authorization: Bearer <key>` and `X-API-Key: <key>` are accepted

@@ -6,13 +6,12 @@ import (
 
 	"log/slog"
 
-	"fj.vms.local/jsds/go-helper-mini/basestruct"
 	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TypeSearXng struct {
-	basestruct.Embedded
+	lib.Embedded
 	SearXNG_URL string
 	BodySizeMax int64
 	url_parsed  *url.URL // Parsed URL object of SearXNG_URL

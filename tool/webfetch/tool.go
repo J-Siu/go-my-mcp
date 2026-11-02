@@ -3,12 +3,12 @@ package webfetch
 import (
 	"log/slog"
 
-	"fj.vms.local/jsds/go-helper-mini/basestruct"
+	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TypeWebFetch struct {
-	basestruct.Embedded
+	lib.Embedded
 	BodySizeMax int64
 	RedirectMax int
 }
