@@ -52,9 +52,13 @@ const (
 
 	// Environment variables are prefixed with this, followed by the upper-cased key name
 	EnvPrefix = "GO_MY_MCP"
+
+	// Replaces the API key in the `config` output, so it is never echoed
+	redacted = "<redacted>"
 )
 
 const (
+	KeyApiKey            = "ApiKey"
 	KeyDebug             = "Debug"
 	KeyFetchBodySizeMax  = "FetchBodySizeMax"
 	KeyFileConf          = "FileConf"
@@ -76,6 +80,8 @@ var Vip = viper.New()
 
 type TypeConf struct {
 	basestruct.Embedded
+	// Shared secret required from clients. Empty disables access control.
+	ApiKey            string `json:"ApiKey"`
 	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
 	FileConf          string `json:"FileConf"`
 	ListenAddress     string `json:"ListenAddress"`
@@ -86,6 +92,7 @@ type TypeConf struct {
 
 // Values read from config file, environment and flags
 type typeConfValues struct {
+	ApiKey        string
 	ListenAddress string
 	SearXngUrl    string
 }
@@ -93,6 +100,7 @@ type typeConfValues struct {
 // TypeConfEffective - configuration as shown by the `config` sub command
 type TypeConfEffective struct {
 	FileConf          string            `json:"FileConf"`
+	ApiKey            string            `json:"ApiKey"`
 	ListenAddress     string            `json:"ListenAddress"`
 	SearXngUrl        string            `json:"SearXngUrl"`
 	RedirectMax       int               `json:"RedirectMax"`
@@ -170,6 +178,7 @@ func envName(key string) string {
 // Viper keys known to the configuration
 func allKeys() []string {
 	return []string{
+		KeyApiKey,
 		KeyFileConf,
 		KeyListenAddress,
 		KeySearXngUrl,
@@ -188,6 +197,8 @@ func init() {
 	Vip.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	Vip.AutomaticEnv()
 
+	// registered so AutomaticEnv sees the key; also pins the type to string
+	Vip.SetDefault(KeyApiKey, "")
 	Vip.SetDefault(KeyListenAddress, DefaultListenAddress)
 	Vip.SetDefault(KeySearXngUrl, DefaultSearXngUrl)
 	Vip.SetDefault(KeyRedirectMax, DefaultRedirectMax)
@@ -207,8 +218,13 @@ func (t *TypeConf) New() *TypeConf {
 
 // Effective - configuration values in use, for display
 func (t *TypeConf) Effective() TypeConfEffective {
+	apiKey := ""
+	if t.ApiKey != "" {
+		apiKey = redacted
+	}
 	return TypeConfEffective{
 		FileConf:          t.FileConf,
+		ApiKey:            apiKey,
 		ListenAddress:     t.ListenAddress,
 		SearXngUrl:        t.SearXngUrl,
 		RedirectMax:       t.RedirectMax,
@@ -246,6 +262,7 @@ func (t *TypeConf) Load() error {
 	}
 
 	if t.Err == nil {
+		t.ApiKey = values.ApiKey
 		t.ListenAddress = values.ListenAddress
 		t.SearXngUrl = values.SearXngUrl
 		t.Debug = Vip.GetBool(KeyDebug)
@@ -276,4 +293,9 @@ func (t *TypeConf) validate() error {
 		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", KeySearchBodySizeMax, t.SearchBodySizeMax))
 	}
 	return nil
+}
+
+// AuthEnabled - whether clients must present the API key
+func (t *TypeConf) AuthEnabled() bool {
+	return t.ApiKey != ""
 }

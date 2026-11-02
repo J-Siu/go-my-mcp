@@ -30,7 +30,7 @@ var startCmd = &cobra.Command{
 		if err == nil {
 			sx.TlsCheck = false
 			err = mcpSrv.
-				New(global.Conf.ListenAddress).
+				New(global.Conf.ListenAddress, global.Conf.ApiKey).
 				Register(sx).
 				Register(wf).
 				Run()
