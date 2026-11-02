@@ -11,10 +11,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const (
-	bodySizeMax = 2 << 20
-)
-
 type TypeSearXng struct {
 	basestruct.Embedded
 	SearXNG_URL string
@@ -23,7 +19,7 @@ type TypeSearXng struct {
 	TlsCheck    bool
 }
 
-func (t *TypeSearXng) New(searXngUrl string) (searXng *TypeSearXng, err error) {
+func (t *TypeSearXng) New(searXngUrl string, bodySizeMax int64) (searXng *TypeSearXng, err error) {
 	t.MyType = "TypeSearXng"
 	prefix := t.MyType + ".New"
 	t.BodySizeMax = bodySizeMax

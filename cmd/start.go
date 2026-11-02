@@ -24,9 +24,9 @@ var startCmd = &cobra.Command{
 			wf     = new(webfetch.TypeWebFetch)
 			err    error
 		)
-		sx, err = sx.New(global.Conf.SearXngUrl)
+		sx, err = sx.New(global.Conf.SearXngUrl, global.Conf.SearchBodySizeMax)
 		if err == nil {
-			wf, err = wf.New()
+			wf, err = wf.New(global.Conf.FetchBodySizeMax, global.Conf.RedirectMax)
 		}
 		if err == nil {
 			if global.Conf.Debug {

@@ -24,6 +24,7 @@ package global
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -42,15 +43,25 @@ const (
 	DefaultListenAddress = ":9000"
 	DefaultSearXngUrl    = "http://xng.vms.local"
 
+	// Maximum number of redirects a single web_fetch follows
+	DefaultRedirectMax = 10
+
+	// Response body limits in bytes
+	DefaultFetchBodySizeMax  = 2 << 20
+	DefaultSearchBodySizeMax = 2 << 20
+
 	// Environment variables are prefixed with this, followed by the upper-cased key name
 	EnvPrefix = "GO_MY_MCP"
 )
 
 const (
-	keyDebug         = "Debug"
-	keyFileConf      = "FileConf"
-	keyListenAddress = "ListenAddress"
-	keySearXngUrl    = "SearXngUrl"
+	keyDebug             = "Debug"
+	keyFetchBodySizeMax  = "FetchBodySizeMax"
+	keyFileConf          = "FileConf"
+	keyListenAddress     = "ListenAddress"
+	keyRedirectMax       = "RedirectMax"
+	keySearchBodySizeMax = "SearchBodySizeMax"
+	keySearXngUrl        = "SearXngUrl"
 )
 
 // Effective configuration, populated by [Conf.Load]
@@ -61,9 +72,12 @@ var Vip = viper.New()
 
 type TypeConf struct {
 	basestruct.Embedded
-	FileConf      string `json:"FileConf"`
-	ListenAddress string `json:"ListenAddress"`
-	SearXngUrl    string `json:"SearXngUrl"`
+	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
+	FileConf          string `json:"FileConf"`
+	ListenAddress     string `json:"ListenAddress"`
+	RedirectMax       int    `json:"RedirectMax"`
+	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
+	SearXngUrl        string `json:"SearXngUrl"`
 }
 
 // Values read from config file, environment and flags
@@ -74,12 +88,15 @@ type typeConfValues struct {
 
 // TypeConfEffective - configuration as shown by the `config` sub command
 type TypeConfEffective struct {
-	FileConf      string      `json:"FileConf"`
-	ListenAddress string      `json:"ListenAddress"`
-	SearXngUrl    string      `json:"SearXngUrl"`
-	Debug         bool        `json:"Debug"`
-	Version       string      `json:"Version"`
-	Env           TypeConfEnv `json:"Env"`
+	FileConf          string      `json:"FileConf"`
+	ListenAddress     string      `json:"ListenAddress"`
+	SearXngUrl        string      `json:"SearXngUrl"`
+	RedirectMax       int         `json:"RedirectMax"`
+	FetchBodySizeMax  int64       `json:"FetchBodySizeMax"`
+	SearchBodySizeMax int64       `json:"SearchBodySizeMax"`
+	Debug             bool        `json:"Debug"`
+	Version           string      `json:"Version"`
+	Env               TypeConfEnv `json:"Env"`
 }
 
 // TypeConfEnv - environment variable state for the configuration keys
@@ -119,7 +136,15 @@ func envName(key string) string {
 
 // Viper keys known to the configuration
 func allKeys() []string {
-	return []string{keyFileConf, keyListenAddress, keySearXngUrl, keyDebug}
+	return []string{
+		keyFileConf,
+		keyListenAddress,
+		keySearXngUrl,
+		keyRedirectMax,
+		keyFetchBodySizeMax,
+		keySearchBodySizeMax,
+		keyDebug,
+	}
 }
 
 func init() {
@@ -132,6 +157,9 @@ func init() {
 
 	Vip.SetDefault(keyListenAddress, DefaultListenAddress)
 	Vip.SetDefault(keySearXngUrl, DefaultSearXngUrl)
+	Vip.SetDefault(keyRedirectMax, DefaultRedirectMax)
+	Vip.SetDefault(keyFetchBodySizeMax, DefaultFetchBodySizeMax)
+	Vip.SetDefault(keySearchBodySizeMax, DefaultSearchBodySizeMax)
 	Vip.SetDefault(keyDebug, false)
 }
 
@@ -144,12 +172,15 @@ func (t *TypeConf) New() *TypeConf {
 // Effective - configuration values in use, for display
 func (t *TypeConf) Effective() TypeConfEffective {
 	return TypeConfEffective{
-		FileConf:      t.FileConf,
-		ListenAddress: t.ListenAddress,
-		SearXngUrl:    t.SearXngUrl,
-		Debug:         t.Debug,
-		Version:       Version(),
-		Env:           t.Env(),
+		FileConf:          t.FileConf,
+		ListenAddress:     t.ListenAddress,
+		SearXngUrl:        t.SearXngUrl,
+		RedirectMax:       t.RedirectMax,
+		FetchBodySizeMax:  t.FetchBodySizeMax,
+		SearchBodySizeMax: t.SearchBodySizeMax,
+		Debug:             t.Debug,
+		Version:           Version(),
+		Env:               t.Env(),
 	}
 }
 
@@ -181,7 +212,28 @@ func (t *TypeConf) Load() error {
 		t.ListenAddress = values.ListenAddress
 		t.SearXngUrl = values.SearXngUrl
 		t.Debug = Vip.GetBool(keyDebug)
+		// read the numeric keys directly; Unmarshal does not resolve them reliably
+		t.RedirectMax = Vip.GetInt(keyRedirectMax)
+		t.FetchBodySizeMax = Vip.GetInt64(keyFetchBodySizeMax)
+		t.SearchBodySizeMax = Vip.GetInt64(keySearchBodySizeMax)
+		t.Err = t.validate()
+	}
+	if t.Err == nil {
 		t.Initialized = true
 	}
 	return t.Err
+}
+
+// validate - reject values that would break the tools at run time
+func (t *TypeConf) validate() error {
+	prefix := t.MyType + ".Load"
+	switch {
+	case t.RedirectMax < 0:
+		return errs.New(prefix, fmt.Sprintf("%s must be >= 0, got %d", keyRedirectMax, t.RedirectMax))
+	case t.FetchBodySizeMax <= 0:
+		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", keyFetchBodySizeMax, t.FetchBodySizeMax))
+	case t.SearchBodySizeMax <= 0:
+		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", keySearchBodySizeMax, t.SearchBodySizeMax))
+	}
+	return nil
 }

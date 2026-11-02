@@ -9,12 +9,12 @@ MCP server provides
 | Tool | Description | Input | Output |
 | --- | --- | --- | --- |
 | `searxng_search` | Web search via SearXNG | `query` (string) | `results[]` — `url`, `title`, `content`, `engine` |
-| `web_fetch` | Fetch a web page by URL | `url` (string, HTTP/HTTPS) | `content`, `url`, `status_code`, `content_type` |
+| `web_fetch` | Fetch a web page by URL, following redirects | `url` (string, HTTP/HTTPS) | `content`, `url` (final), `status_code`, `content_type`, `redirect_count` |
 
 Notes:
 
-- `web_fetch` follows no redirects (returned as-is) and times out after 15s.
-- Both tools cap the response body at 2 MiB.
+- `web_fetch` follows up to `RedirectMax` redirects (default 10) and times out after 15s. Every hop must be a plain `http`/`https` URL without embedded credentials; `redirect_count` reports how many hops were followed, and `url` is the final URL. `RedirectMax: 0` disables following — the 3xx response is returned as-is.
+- Response body limits are configurable per tool: `FetchBodySizeMax` for `web_fetch`, `SearchBodySizeMax` for `searxng_search` (both default to 2 MiB).
 - `searxng_search` requires a SearXNG instance with the JSON output format enabled.
 
 ## Requirements
@@ -96,14 +96,20 @@ go-my-mcp config
   "FileConf": "~/.config/go-my-mcp.json",
   "ListenAddress": ":9000",
   "SearXngUrl": "http://xng.vms.local",
+  "RedirectMax": 10,
+  "FetchBodySizeMax": 2097152,
+  "SearchBodySizeMax": 2097152,
   "Debug": false,
-  "Version": "v0.0.0-20261102083237-cb4d9e817523",
+  "Version": "v1.0.0",
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
       "GO_MY_MCP_FILECONF",
       "GO_MY_MCP_LISTENADDRESS",
       "GO_MY_MCP_SEARXNGURL",
+      "GO_MY_MCP_REDIRECTMAX",
+      "GO_MY_MCP_FETCHBODYSIZEMAX",
+      "GO_MY_MCP_SEARCHBODYSIZEMAX",
       "GO_MY_MCP_DEBUG"
     ],
     "Set": {}
@@ -132,14 +138,20 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "FileConf": "~/.config/go-my-mcp.json",
   "ListenAddress": "127.0.0.1:8080",
   "SearXngUrl": "http://xng.vms.local",
+  "RedirectMax": 10,
+  "FetchBodySizeMax": 2097152,
+  "SearchBodySizeMax": 2097152,
   "Debug": false,
-  "Version": "v0.0.0-20261102083237-cb4d9e817523",
+  "Version": "v1.0.0",
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
       "GO_MY_MCP_FILECONF",
       "GO_MY_MCP_LISTENADDRESS",
       "GO_MY_MCP_SEARXNGURL",
+      "GO_MY_MCP_REDIRECTMAX",
+      "GO_MY_MCP_FETCHBODYSIZEMAX",
+      "GO_MY_MCP_SEARCHBODYSIZEMAX",
       "GO_MY_MCP_DEBUG"
     ],
     "Set": {
@@ -179,7 +191,10 @@ Example:
 ```json
 {
   "ListenAddress": "127.0.0.1:9000",
-  "SearXngUrl": "http://xng.vms.local"
+  "SearXngUrl": "http://xng.vms.local",
+  "RedirectMax": 10,
+  "FetchBodySizeMax": 2097152,
+  "SearchBodySizeMax": 2097152
 }
 ```
 
@@ -187,6 +202,11 @@ Example:
 | --- | --- | --- | --- |
 | `ListenAddress` | string | `:9000` | Address the HTTP server listens on |
 | `SearXngUrl` | string | `http://xng.vms.local` | Base URL of the SearXNG instance |
+| `RedirectMax` | int | `10` | Max redirects followed by `web_fetch`; `0` disables following |
+| `FetchBodySizeMax` | int | `2097152` (2 MiB) | `web_fetch` response body limit in bytes |
+| `SearchBodySizeMax` | int | `2097152` (2 MiB) | `searxng_search` response body limit in bytes |
+
+`RedirectMax` must be `>= 0`; the body limits must be `> 0`. Out-of-range values are rejected at startup instead of silently misbehaving.
 
 ### Environment variables
 
@@ -205,6 +225,9 @@ These are persistent (root) flags, so they work with every sub command:
 | `-c`, `--config` | `FileConf` | `~/.config/go-my-mcp.json` | Config file path |
 | `-l`, `--listen` | `ListenAddress` | `:9000` | HTTP listen address |
 | `-u`, `--SearXngUrl` | `SearXngUrl` | `http://xng.vms.local` | SearXNG base URL |
+| | `--RedirectMax` | `10` | Max redirects followed by `web_fetch` |
+| | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
+| | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
 | `-d`, `--debug` | `Debug` | `false` | Debug logging |
 
 ## MCP client setup

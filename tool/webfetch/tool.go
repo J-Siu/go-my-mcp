@@ -7,19 +7,17 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const (
-	bodySizeMax = 2 << 20
-)
-
 type TypeWebFetch struct {
 	basestruct.Embedded
 	BodySizeMax int64
+	RedirectMax int
 }
 
-func (t *TypeWebFetch) New() (searXng *TypeWebFetch, err error) {
+func (t *TypeWebFetch) New(bodySizeMax int64, redirectMax int) (webFetch *TypeWebFetch, err error) {
 	t.MyType = "TypeWebFetch"
 	prefix := t.MyType + ".New"
 	t.BodySizeMax = bodySizeMax
+	t.RedirectMax = redirectMax
 	t.Initialized = true
 	if t.Debug {
 		ezlog.L.Println(str.Struct2String(prefix, t))
@@ -35,7 +33,7 @@ func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 			mcpServer,
 			&mcp.Tool{
 				Name:        "web_fetch",
-				Description: "fetch a web page by URL"},
+				Description: "fetch a web page by URL, following redirects"},
 			t.Fetch,
 		)
 		if t.Debug {

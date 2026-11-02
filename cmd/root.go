@@ -44,9 +44,15 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug logging")
 	rootCmd.PersistentFlags().StringP("listen", "l", global.DefaultListenAddress, "HTTP listen address")
 	rootCmd.PersistentFlags().StringP("SearXngUrl", "u", global.DefaultSearXngUrl, "SearXNG URL")
+	rootCmd.PersistentFlags().Int("RedirectMax", global.DefaultRedirectMax, "maximum redirects followed by web_fetch")
+	rootCmd.PersistentFlags().Int64("FetchBodySizeMax", global.DefaultFetchBodySizeMax, "web_fetch response body limit in bytes")
+	rootCmd.PersistentFlags().Int64("SearchBodySizeMax", global.DefaultSearchBodySizeMax, "searxng_search response body limit in bytes")
 
 	bindFlag("config", "FileConf")
 	bindFlag("debug", "Debug")
 	bindFlag("listen", "ListenAddress")
 	bindFlag("SearXngUrl", "SearXngUrl")
+	bindFlag("RedirectMax", "RedirectMax")
+	bindFlag("FetchBodySizeMax", "FetchBodySizeMax")
+	bindFlag("SearchBodySizeMax", "SearchBodySizeMax")
 }
