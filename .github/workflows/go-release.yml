@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Unshallow repo
+        run: git fetch --prune --unshallow
+
+      - name: Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.27.2"
+
+      - name: Go Dependency
+        run: go mod tidy
+
+      - name: Env
+        id: vars
+        run: |
+          echo "Using go at: $(which go)"
+          echo "Go version: $(go version)"
+          echo
+          echo "nGo environment:"
+          go env
+          echo
+          echo "System environment(set):"
+          set | sort
+          echo "go_cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "version_tag=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.vars.outputs.version_tag }}
+
+# cspell: words GOCACHE
