@@ -8,6 +8,7 @@ import (
 
 	"fj.vms.local/jsds/go-my-mcp/global"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var rootCmd = &cobra.Command{
@@ -15,6 +16,7 @@ var rootCmd = &cobra.Command{
 	Short: "MCP for SearXNG",
 	// Resolve the effective configuration once for every sub command, after flag parsing
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		trackFlags(cmd)
 		if err := global.Conf.Load(); err != nil {
 			// a broken config is not a usage error
 			cmd.SilenceUsage = true
@@ -29,6 +31,30 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+// flagKeys - command line flags and the viper keys they feed
+var flagKeys = []struct{ name, key string }{
+	{"config", global.KeyFileConf},
+	{"debug", global.KeyDebug},
+	{"listen", global.KeyListenAddress},
+	{"SearXngUrl", global.KeySearXngUrl},
+	{"RedirectMax", global.KeyRedirectMax},
+	{"FetchBodySizeMax", global.KeyFetchBodySizeMax},
+	{"SearchBodySizeMax", global.KeySearchBodySizeMax},
+}
+
+// record which flags were given on the command line, for `config` to report
+func trackFlags(cmd *cobra.Command) {
+	setFlags := map[string]string{}
+	cmd.Flags().Visit(func(f *pflag.Flag) {
+		for _, fk := range flagKeys {
+			if fk.name == f.Name {
+				setFlags[fk.key] = f.Value.String()
+			}
+		}
+	})
+	global.Vip.Set(global.KeyConfigFlag, setFlags)
 }
 
 // Bind a cobra flag to a viper key, so viper resolves the effective value
@@ -48,11 +74,7 @@ func init() {
 	rootCmd.PersistentFlags().Int64("FetchBodySizeMax", global.DefaultFetchBodySizeMax, "web_fetch response body limit in bytes")
 	rootCmd.PersistentFlags().Int64("SearchBodySizeMax", global.DefaultSearchBodySizeMax, "searxng_search response body limit in bytes")
 
-	bindFlag("config", "FileConf")
-	bindFlag("debug", "Debug")
-	bindFlag("listen", "ListenAddress")
-	bindFlag("SearXngUrl", "SearXngUrl")
-	bindFlag("RedirectMax", "RedirectMax")
-	bindFlag("FetchBodySizeMax", "FetchBodySizeMax")
-	bindFlag("SearchBodySizeMax", "SearchBodySizeMax")
+	for _, fk := range flagKeys {
+		bindFlag(fk.name, fk.key)
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -35,9 +36,13 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 	error,
 ) {
 	prefix := t.MyType + ".Search"
+	start := time.Now()
+	// The request state lives in locals: t.Err is shared by every concurrent
+	// call on this long-lived tool.
 	var (
 		body         []byte
 		endpoint_str string
+		err          error
 		httpClient   *http.Client
 		httpReq      *http.Request
 		httpRes      *http.Response
@@ -45,30 +50,28 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 		result       SearchOutput
 	)
 
-	t.Err = nil
-
 	if strings.TrimSpace(input.Query) == "" {
-		t.Err = fmt.Errorf("search query must not be empty")
+		err = fmt.Errorf("search query must not be empty")
 	}
 	// prepare search endpoint
 	slog.Debug(prefix, "query", input.Query)
-	if t.Err == nil {
-		endpoint_str, t.Err = url.JoinPath(t.SearXNG_URL, "search")
+	if err == nil {
+		endpoint_str, err = url.JoinPath(t.SearXNG_URL, "search")
 	}
-	if t.Err == nil {
-		httpUrl, t.Err = url.Parse(endpoint_str)
+	if err == nil {
+		httpUrl, err = url.Parse(endpoint_str)
 	}
 	// prepare http request
-	if t.Err == nil {
+	if err == nil {
 		query := httpUrl.Query()
 		query.Set("q", input.Query)
 		query.Set("format", "json")
 		httpUrl.RawQuery = query.Encode()
 		slog.Debug(prefix, "url", httpUrl.String())
-		httpReq, t.Err = http.NewRequestWithContext(ctx, http.MethodGet, httpUrl.String(), nil)
+		httpReq, err = http.NewRequestWithContext(ctx, http.MethodGet, httpUrl.String(), nil)
 	}
 	// http header and request
-	if t.Err == nil {
+	if err == nil {
 		httpReq.Header.Set("Accept", "application/json")
 
 		if t.TlsCheck {
@@ -76,34 +79,38 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 		} else {
 			httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 		}
-		httpRes, t.Err = httpClient.Do(httpReq)
-		if t.Err != nil {
-			t.Err = fmt.Errorf("httpClient.Do: %s", t.Err.Error())
+		httpRes, err = httpClient.Do(httpReq)
+		if err != nil {
+			err = fmt.Errorf("httpClient.Do: %w", err)
 		}
 	}
-	if t.Err == nil {
+	if err == nil {
 		defer httpRes.Body.Close()
 		if httpRes.StatusCode < http.StatusOK || httpRes.StatusCode >= http.StatusMultipleChoices {
-			t.Err = fmt.Errorf("SearXNG HTTP %s", httpRes.Status)
+			err = fmt.Errorf("SearXNG HTTP %s", httpRes.Status)
 		}
 	}
-	if t.Err == nil {
-		body, t.Err = io.ReadAll(io.LimitReader(httpRes.Body, t.BodySizeMax))
-		if t.Err != nil {
-			t.Err = fmt.Errorf("SearXNG HTTP %s: %s", httpRes.Status, strings.TrimSpace(string(body)))
+	if err == nil {
+		body, err = io.ReadAll(io.LimitReader(httpRes.Body, t.BodySizeMax))
+		if err != nil {
+			err = fmt.Errorf("SearXNG HTTP %s: %s: %w", httpRes.Status, strings.TrimSpace(string(body)), err)
 		}
 	}
-	if t.Err == nil {
-		t.Err = json.Unmarshal(body, &result)
-		if t.Err != nil {
-			t.Err = fmt.Errorf("json.Unmarshal: %s", t.Err.Error())
+	if err == nil {
+		err = json.Unmarshal(body, &result)
+		if err != nil {
+			err = fmt.Errorf("json.Unmarshal: %w", err)
 		}
 	}
-	if t.Err != nil {
+	if err != nil {
 		// the caller only gets the error text, so keep the details here
-		slog.Error(prefix, "err", t.Err.Error())
+		slog.Error(prefix, "err", err.Error(), "elapsed_ms", time.Since(start).Milliseconds())
 	} else if slog.Default().Enabled(ctx, slog.LevelDebug) {
-		slog.Debug(prefix, "results", len(result.Results))
+		slog.Debug(prefix, "results", len(result.Results),
+			"status", httpRes.StatusCode,
+			"content_len", len(body),
+			"elapsed_ms", time.Since(start).Milliseconds(),
+		)
 	}
-	return nil, result, t.Err
+	return nil, result, err
 }

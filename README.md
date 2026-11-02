@@ -97,6 +97,15 @@ go-my-mcp config
   "SearchBodySizeMax": 2097152,
   "Debug": false,
   "Version": "v1.0.0",
+  "Source": {
+    "Debug": "default",
+    "FetchBodySizeMax": "default",
+    "FileConf": "default",
+    "ListenAddress": "default",
+    "RedirectMax": "default",
+    "SearXngUrl": "default",
+    "SearchBodySizeMax": "default"
+  },
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
@@ -114,6 +123,8 @@ go-my-mcp config
 ```
 
 Use it to confirm exactly which values are in effect after combining the config file, environment variables and flags.
+
+The `Source` block reports where each value came from — `default`, the `config` file, `env`, or `flag` — so a value that looks wrong can be traced to its origin immediately.
 
 The `Env` block reports the environment side of that resolution:
 
@@ -139,6 +150,15 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "SearchBodySizeMax": 2097152,
   "Debug": false,
   "Version": "v1.0.0",
+  "Source": {
+    "Debug": "default",
+    "FetchBodySizeMax": "default",
+    "FileConf": "default",
+    "ListenAddress": "env",
+    "RedirectMax": "default",
+    "SearXngUrl": "default",
+    "SearchBodySizeMax": "default"
+  },
   "Env": {
     "Prefix": "GO_MY_MCP",
     "Recognized": [
@@ -155,6 +175,25 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
     }
   }
 }
+```
+
+`Source` reports the highest-precedence origin, so in the output above `ListenAddress` is `env` even if the config file also set it. Adding a flag moves the entry to `flag`:
+
+```sh
+GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp --listen :9999 config
+```
+
+```json
+  "Source": {
+    "ListenAddress": "flag",
+    ...
+  },
+```
+
+`config` writes JSON to stdout, so it can be piped directly:
+
+```sh
+go-my-mcp config | jq '.Source'
 ```
 
 Any `GO_MY_MCP_`-prefixed variable appears under `Set`, so a typo such as `GO_MY_MCP_LISENADDRESS` shows up there while missing from `Recognized` — a quick way to spot variables that are being ignored.
@@ -231,10 +270,10 @@ These are persistent (root) flags, so they work with every sub command:
 Logs go to **stderr** as [slog](https://pkg.go.dev/log/slog) text, so they never mix with `config`/`version` output on stdout:
 
 ```text
-time=2026-11-02T06:06:43.255-05:00 level=DEBUG msg=TypeWebFetch.Fetch url=http://example.com/start
-time=2026-11-02T06:06:43.256-05:00 level=DEBUG msg=TypeWebFetch.Fetch redirect=1 to=http://example.com/mid
-time=2026-11-02T06:06:43.256-05:00 level=DEBUG msg=TypeWebFetch.Fetch status=200 content_len=12 content_type=application/json
-time=2026-11-02T06:06:43.257-05:00 level=ERROR msg=TypeWebFetch.Fetch status=404 content_len=0 err="HTTP 404 Not Found"
+time=... level=DEBUG msg=TypeWebFetch.Fetch url=http://example.com/start
+time=... level=DEBUG msg=TypeWebFetch.Fetch redirect=1 to=http://example.com/mid
+time=... level=DEBUG msg=TypeWebFetch.Fetch status=200 content_len=40 elapsed_ms=3 content_type="text/html; charset=utf-8"
+time=... level=ERROR msg=TypeWebFetch.Fetch status=404 content_len=0 content_type="" err="HTTP 404 Not Found" elapsed_ms=1
 ```
 
 `Debug: false` (the default) keeps the level at `INFO`, where the tools are silent — only errors reaching the MCP client are surfaced, and the client already receives them.
@@ -243,7 +282,15 @@ time=2026-11-02T06:06:43.257-05:00 level=ERROR msg=TypeWebFetch.Fetch status=404
 go-my-mcp start --debug        # or Debug: true / GO_MY_MCP_DEBUG=true
 ```
 
-Debug adds one line per request (URL, each redirect hop, status, body length), plus the resolved tool settings at startup. Response bodies are never logged — they are returned to the client.
+Debug adds one line per request (URL, each redirect hop, status, body length, and `elapsed_ms`), plus the resolved tool settings at startup. Response bodies are never logged — they are returned to the client.
+
+Each request is logged exactly once at the tool boundary, on success or failure, so errors are not duplicated. The MCP SDK is wired to the same `slog` logger, so protocol events such as session connect/initialize are visible at `INFO`:
+
+```text
+time=... level=INFO msg="server connecting"
+time=... level=INFO msg="server session connected" session_id=GBPUED452JZAOAPEXWC6FHFYVN
+time=... level=INFO msg="session initialized"
+```
 
 ## MCP client setup
 

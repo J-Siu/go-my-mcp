@@ -21,10 +21,11 @@ type TypeServer struct {
 func (t *TypeServer) New(listenAddress string) *TypeServer {
 	t.MyType = "TypeServer"
 	// prefix := t.MyType + ".New"
+	// the SDK logs session and protocol activity through this logger
 	t.McpServer = mcp.NewServer(&mcp.Implementation{
 		Name:    "go-my-mcp",
 		Version: global.Version(),
-	}, nil)
+	}, &mcp.ServerOptions{Logger: slog.Default()})
 	t.ListenAddress = listenAddress
 	return t
 }

@@ -4,6 +4,8 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
 	"fj.vms.local/jsds/go-my-mcp/global"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +22,8 @@ var versionCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Printf("%s version %s\n", global.AppName, global.Version())
+		// stdout, so the output can be piped; cmd.Printf would use stderr
+		fmt.Fprintln(cmd.OutOrStdout(), global.AppName, "version", global.Version())
 	},
 }
 

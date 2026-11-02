@@ -55,13 +55,17 @@ const (
 )
 
 const (
-	keyDebug             = "Debug"
-	keyFetchBodySizeMax  = "FetchBodySizeMax"
-	keyFileConf          = "FileConf"
-	keyListenAddress     = "ListenAddress"
-	keyRedirectMax       = "RedirectMax"
-	keySearchBodySizeMax = "SearchBodySizeMax"
-	keySearXngUrl        = "SearXngUrl"
+	KeyDebug             = "Debug"
+	KeyFetchBodySizeMax  = "FetchBodySizeMax"
+	KeyFileConf          = "FileConf"
+	KeyListenAddress     = "ListenAddress"
+	KeyRedirectMax       = "RedirectMax"
+	KeySearchBodySizeMax = "SearchBodySizeMax"
+
+	// pseudo key, tracks which flags cobra actually set. Not part of allKeys(),
+	// so it is neither reported nor read from the environment.
+	KeyConfigFlag = "ConfigFlag"
+	KeySearXngUrl = "SearXngUrl"
 )
 
 // Effective configuration, populated by [Conf.Load]
@@ -88,16 +92,24 @@ type typeConfValues struct {
 
 // TypeConfEffective - configuration as shown by the `config` sub command
 type TypeConfEffective struct {
-	FileConf          string      `json:"FileConf"`
-	ListenAddress     string      `json:"ListenAddress"`
-	SearXngUrl        string      `json:"SearXngUrl"`
-	RedirectMax       int         `json:"RedirectMax"`
-	FetchBodySizeMax  int64       `json:"FetchBodySizeMax"`
-	SearchBodySizeMax int64       `json:"SearchBodySizeMax"`
-	Debug             bool        `json:"Debug"`
-	Version           string      `json:"Version"`
-	Env               TypeConfEnv `json:"Env"`
+	FileConf          string            `json:"FileConf"`
+	ListenAddress     string            `json:"ListenAddress"`
+	SearXngUrl        string            `json:"SearXngUrl"`
+	RedirectMax       int               `json:"RedirectMax"`
+	FetchBodySizeMax  int64             `json:"FetchBodySizeMax"`
+	SearchBodySizeMax int64             `json:"SearchBodySizeMax"`
+	Debug             bool              `json:"Debug"`
+	Version           string            `json:"Version"`
+	Source            map[string]string `json:"Source"`
+	Env               TypeConfEnv       `json:"Env"`
 }
+
+// Layers a value can come from, in increasing precedence
+const (
+	sourceDefault = "default"
+	sourceEnv     = "env"
+	sourceFlag    = "flag"
+)
 
 // TypeConfEnv - environment variable state for the configuration keys
 type TypeConfEnv struct {
@@ -129,6 +141,27 @@ func (t *TypeConf) Env() TypeConfEnv {
 	return env
 }
 
+// Source - which layer supplied each key: default, env or flag.
+//
+// Only the winning layer is reported; the config file is folded into `default`
+// because a missing file is not an error and not every key is present in it.
+// Flag and env are checked before the file, matching [TypeConf.Load] precedence.
+func (t *TypeConf) Source() map[string]string {
+	source := map[string]string{}
+	setFlags, _ := Vip.Get(KeyConfigFlag).(map[string]string)
+	for _, key := range allKeys() {
+		switch {
+		case setFlags[key] != "":
+			source[key] = sourceFlag
+		case os.Getenv(envName(key)) != "":
+			source[key] = sourceEnv
+		default:
+			source[key] = sourceDefault
+		}
+	}
+	return source
+}
+
 // Env var name for a viper key, e.g. `ListenAddress` -> `GO_MY_MCP_LISTENADDRESS`
 func envName(key string) string {
 	return EnvPrefix + "_" + strings.ReplaceAll(strings.ToUpper(key), ".", "_")
@@ -137,13 +170,13 @@ func envName(key string) string {
 // Viper keys known to the configuration
 func allKeys() []string {
 	return []string{
-		keyFileConf,
-		keyListenAddress,
-		keySearXngUrl,
-		keyRedirectMax,
-		keyFetchBodySizeMax,
-		keySearchBodySizeMax,
-		keyDebug,
+		KeyFileConf,
+		KeyListenAddress,
+		KeySearXngUrl,
+		KeyRedirectMax,
+		KeyFetchBodySizeMax,
+		KeySearchBodySizeMax,
+		KeyDebug,
 	}
 }
 
@@ -155,12 +188,12 @@ func init() {
 	Vip.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	Vip.AutomaticEnv()
 
-	Vip.SetDefault(keyListenAddress, DefaultListenAddress)
-	Vip.SetDefault(keySearXngUrl, DefaultSearXngUrl)
-	Vip.SetDefault(keyRedirectMax, DefaultRedirectMax)
-	Vip.SetDefault(keyFetchBodySizeMax, DefaultFetchBodySizeMax)
-	Vip.SetDefault(keySearchBodySizeMax, DefaultSearchBodySizeMax)
-	Vip.SetDefault(keyDebug, false)
+	Vip.SetDefault(KeyListenAddress, DefaultListenAddress)
+	Vip.SetDefault(KeySearXngUrl, DefaultSearXngUrl)
+	Vip.SetDefault(KeyRedirectMax, DefaultRedirectMax)
+	Vip.SetDefault(KeyFetchBodySizeMax, DefaultFetchBodySizeMax)
+	Vip.SetDefault(KeySearchBodySizeMax, DefaultSearchBodySizeMax)
+	Vip.SetDefault(KeyDebug, false)
 
 	// keep the logger correct even before the first Load (e.g. init-time errors)
 	SetupLog(false)
@@ -183,6 +216,7 @@ func (t *TypeConf) Effective() TypeConfEffective {
 		SearchBodySizeMax: t.SearchBodySizeMax,
 		Debug:             t.Debug,
 		Version:           Version(),
+		Source:            t.Source(),
 		Env:               t.Env(),
 	}
 }
@@ -195,7 +229,7 @@ func (t *TypeConf) Load() error {
 	prefix := t.MyType + ".Load"
 	t.Err = nil
 
-	t.FileConf = Vip.GetString(keyFileConf)
+	t.FileConf = Vip.GetString(KeyFileConf)
 	if t.FileConf == "" {
 		t.FileConf = DefaultConfigFile
 	}
@@ -214,14 +248,14 @@ func (t *TypeConf) Load() error {
 	if t.Err == nil {
 		t.ListenAddress = values.ListenAddress
 		t.SearXngUrl = values.SearXngUrl
-		t.Debug = Vip.GetBool(keyDebug)
+		t.Debug = Vip.GetBool(KeyDebug)
 		// setup the logger before validating, so a config error is also reported
 		// at the level the user asked for
 		SetupLog(t.Debug)
 		// read the numeric keys directly; Unmarshal does not resolve them reliably
-		t.RedirectMax = Vip.GetInt(keyRedirectMax)
-		t.FetchBodySizeMax = Vip.GetInt64(keyFetchBodySizeMax)
-		t.SearchBodySizeMax = Vip.GetInt64(keySearchBodySizeMax)
+		t.RedirectMax = Vip.GetInt(KeyRedirectMax)
+		t.FetchBodySizeMax = Vip.GetInt64(KeyFetchBodySizeMax)
+		t.SearchBodySizeMax = Vip.GetInt64(KeySearchBodySizeMax)
 		t.Err = t.validate()
 	}
 	if t.Err == nil {
@@ -235,11 +269,11 @@ func (t *TypeConf) validate() error {
 	prefix := t.MyType + ".Load"
 	switch {
 	case t.RedirectMax < 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be >= 0, got %d", keyRedirectMax, t.RedirectMax))
+		return errs.New(prefix, fmt.Sprintf("%s must be >= 0, got %d", KeyRedirectMax, t.RedirectMax))
 	case t.FetchBodySizeMax <= 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", keyFetchBodySizeMax, t.FetchBodySizeMax))
+		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", KeyFetchBodySizeMax, t.FetchBodySizeMax))
 	case t.SearchBodySizeMax <= 0:
-		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", keySearchBodySizeMax, t.SearchBodySizeMax))
+		return errs.New(prefix, fmt.Sprintf("%s must be > 0, got %d", KeySearchBodySizeMax, t.SearchBodySizeMax))
 	}
 	return nil
 }

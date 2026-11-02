@@ -1,2 +1,31 @@
+- v1.0.1
+  - Configuration
+    - Migrated from hard-coded constants to cobra/viper, with precedence defaults < config file < environment < flags
+    - Config file defaults to `~/.config/go-my-mcp.json`; a missing file is not an error
+    - Added `-c`, `--config` on the root command to override the config file path
+    - Added `config` sub command printing the effective configuration as JSON
+    - `config` output includes an `Env` block (`Prefix`, `Recognized`, `Set`) listing the `GO_MY_MCP_*` variables that are read and which are actually set
+    - `config` output includes a `Source` block reporting the origin of each key: `default`, `config`, `env` or `flag`
+    - Added `--SearXngUrl`, `--listen` and `--debug` flags for the remaining keys
+    - Added validation rejecting `RedirectMax < 0` and non-positive body size limits
+  - web_fetch
+    - Follows redirects, up to `RedirectMax` (default 10; 0 returns the 3xx response as-is) and reports `redirect_count` plus the final URL
+    - Each redirect hop is validated before it is requested
+    - Fixed a nil-pointer panic when the transport returned an error
+  - Limits
+    - Added `RedirectMax`, `FetchBodySizeMax` and `SearchBodySizeMax` to the defaults and the config file, replacing the package constants
+    - Search and fetch now have independent response body limits (default 2 MiB each)
+  - Logging
+    - Replaced `ezlog` with `log/slog`; logs are written to stderr and the level follows `Debug`
+    - Removed the per-call-site debug guards and propagated `Debug` through four structs; expensive log arguments are now built only when debug is enabled
+    - Each request is logged once at the tool boundary, with `elapsed_ms`, `status`, `content_len` and `content_type`
+    - Wired the same logger into the MCP SDK, so session lifecycle events are visible at `INFO`
+    - Removed the pre-bind "MCP server listening on" banner, which printed the address before the socket was actually bound
+    - Fixed `server.Run` wrapping a nil error, and the `Runs` prefix typo
+  - CLI
+    - Added a `version` sub command instead of the implicit `-v` flag
+    - Version is read from `debug.ReadBuildInfo()`, so it follows the module version and reports `+dirty` on uncommitted changes
+    - `AppName` is derived at runtime from the executable name instead of being hard-coded
+    - `config` and `version` write to stdout so they can be piped; `cmd.Println` writes to stderr
 - v1.0.0
   - Feature complete

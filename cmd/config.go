@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"fj.vms.local/jsds/go-my-mcp/global"
 	"github.com/spf13/cobra"
@@ -21,8 +22,9 @@ var configCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		cmd.Println(string(out))
-		return nil
+		// stdout, so the output can be piped; cmd.Println would use stderr
+		_, err = fmt.Fprintln(cmd.OutOrStdout(), string(out))
+		return err
 	},
 }
 
