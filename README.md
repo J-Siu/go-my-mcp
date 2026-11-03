@@ -1,8 +1,6 @@
 # go-my-mcp
 
-MCP server provides
-— SearXNG search
-- Generic web page fetching — over streamable HTTP.
+MCP server provides SearXNG search and generic web page fetching.
 
 ## Tools
 
@@ -22,17 +20,17 @@ Notes:
 - Go 1.27.2 or newer
 - A reachable SearXNG instance (only for `searxng_search`)
 
-## Build
+## Build and Install
 
 ```sh
-go build -o go-my-mcp .
+go build
 ```
-
-Optionally install it into your `PATH`:
 
 ```sh
-go install .
+go install
 ```
+
+Docker: [docker_my_mcp](https://github.com/J-Siu/docker_my_mcp)
 
 ## Usage
 
@@ -47,27 +45,6 @@ go-my-mcp [command]
 | `version`, `v` | Show the version |
 | `help` | Help about any command |
 | `completion` | Generate a shell completion script |
-
-### Show the version
-
-```sh
-go-my-mcp version
-```
-
-```text
-go-my-mcp version v0.0.0-20261102083237-cb4d9e817523
-```
-
-The version comes from the build info the Go toolchain stamps into the binary, so nothing has to be set by hand:
-
-| Build | Reported version |
-| --- | --- |
-| Tagged, clean checkout | the tag, e.g. `v1.2.3` |
-| Untagged commit | pseudo-version, e.g. `v0.0.0-20261102083237-cb4d9e817523` |
-| Uncommitted changes | suffix `+dirty` |
-| `go run .` | `(devel)` |
-
-The same string is reported to MCP clients as `serverInfo.version` and shown by `config`.
 
 ### Start the server
 
@@ -92,7 +69,7 @@ go-my-mcp config
   "FileConf": "~/.config/go-my-mcp.json",
   "ApiKey": "",
   "ListenAddress": ":9000",
-  "SearXngUrl": "http://xng.vms.local",
+  "SearXngUrl": "http://localhost:8080",
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
   "SearchBodySizeMax": 2097152,
@@ -148,7 +125,7 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "FileConf": "~/.config/go-my-mcp.json",
   "ApiKey": "",
   "ListenAddress": "127.0.0.1:8080",
-  "SearXngUrl": "http://xng.vms.local",
+  "SearXngUrl": "http://localhost:8080",
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
   "SearchBodySizeMax": 2097152,
@@ -232,7 +209,7 @@ Example:
 ```json
 {
   "ListenAddress": "127.0.0.1:9000",
-  "SearXngUrl": "http://xng.vms.local",
+  "SearXngUrl": "http://localhost:8080",
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
   "SearchBodySizeMax": 2097152
@@ -243,7 +220,7 @@ Example:
 | --- | --- | --- | --- |
 | `ApiKey` | string | *(empty)* | Shared secret clients must present; empty disables access control |
 | `ListenAddress` | string | `:9000` | Address the HTTP server listens on |
-| `SearXngUrl` | string | `http://xng.vms.local` | Base URL of the SearXNG instance |
+| `SearXngUrl` | string | `http://localhost:8080` | Base URL of the SearXNG instance |
 | `RedirectMax` | int | `10` | Max redirects followed by `web_fetch`; `0` disables following |
 | `FetchBodySizeMax` | int | `2097152` (2 MiB) | `web_fetch` response body limit in bytes |
 | `SearchBodySizeMax` | int | `2097152` (2 MiB) | `searxng_search` response body limit in bytes |
@@ -268,7 +245,7 @@ These are persistent (root) flags, so they work with every sub command:
 | --- | --- | --- | --- |
 | `-c`, `--config` | `FileConf` | `~/.config/go-my-mcp.json` | Config file path |
 | `-l`, `--listen` | `ListenAddress` | `:9000` | HTTP listen address |
-| `-u`, `--SearXngUrl` | `SearXngUrl` | `http://xng.vms.local` | SearXNG base URL |
+| `-u`, `--SearXngUrl` | `SearXngUrl` | `http://localhost:8080` | SearXNG base URL |
 | | `--RedirectMax` | `10` | Max redirects followed by `web_fetch` |
 | | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
 | | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
@@ -336,11 +313,11 @@ time=... level=INFO msg="session initialized"
 
 ## MCP client setup
 
-Point your MCP client at the running server's HTTP endpoint. For example, in VS Code `mcp.json`:
+Point your MCP client at the running server's HTTP endpoint. For example, in VS Code `$HOME/.copilot/mcp-config.json`:
 
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "go-my-mcp": {
       "type": "http",
       "url": "http://localhost:9000/mcp"
@@ -358,21 +335,8 @@ The server must be running before the client connects.
 | [main.go](main.go) | Entry point, calls `cmd.Execute()` |
 | [cmd/](cmd) | CLI commands: `root`, `start`, `config` |
 | [global/](global) | Configuration type, viper wiring and shared helpers |
-| [mcpSrv/](mcpSrv) | MCP server construction and HTTP transport |
+| [server/](server) | MCP server construction and HTTP transport |
 | [tool/](tool) | Tool interface and implementations (`searxng`, `webfetch`) |
-| [lib/](lib) | Small shared helpers (URL validation) |
-
-## Development
-
-```sh
-go build ./...   # build
-go vet ./...     # static checks
-gofmt -l .       # list files needing formatting
-```
-
-## Docker
-
-[docker_my_mcp](https://github.com/J-Siu/docker_my_mcp)
 
 ## License
 
