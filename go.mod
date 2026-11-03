@@ -1,4 +1,4 @@
-module fj.vms.local/jsds/go-my-mcp
+module github.com/J-Siu/go-my-mcp
 
 go 1.27.2
 

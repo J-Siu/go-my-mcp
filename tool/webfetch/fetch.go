@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"fj.vms.local/jsds/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/global"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

@@ -4,10 +4,10 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fj.vms.local/jsds/go-my-mcp/global"
-	"fj.vms.local/jsds/go-my-mcp/server"
-	"fj.vms.local/jsds/go-my-mcp/tool/searxng"
-	"fj.vms.local/jsds/go-my-mcp/tool/webfetch"
+	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/server"
+	"github.com/J-Siu/go-my-mcp/tool/searxng"
+	"github.com/J-Siu/go-my-mcp/tool/webfetch"
 	"github.com/spf13/cobra"
 )
 

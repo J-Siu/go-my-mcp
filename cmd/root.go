@@ -6,7 +6,7 @@ package cmd
 import (
 	"os"
 
-	"fj.vms.local/jsds/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/global"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

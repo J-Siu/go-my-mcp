@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"fj.vms.local/jsds/go-my-mcp/global"
-	"fj.vms.local/jsds/go-my-mcp/tool"
+	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
