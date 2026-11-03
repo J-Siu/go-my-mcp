@@ -29,7 +29,6 @@ import (
 	"os"
 	"strings"
 
-	"fj.vms.local/jsds/go-my-mcp/lib"
 	"github.com/spf13/viper"
 )
 
@@ -255,11 +254,11 @@ func (t *TypeConf) Load() error {
 	}
 	Vip.SetConfigFile(TildeEnvExpand(t.FileConf))
 	if err := Vip.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		err = lib.ErrNew(prefix, err.Error())
+		err = fmt.Errorf("%s: %s", prefix, err.Error())
 	}
 
 	if err = Vip.Unmarshal(&values); err != nil {
-		err = lib.ErrNew(prefix, err.Error())
+		err = fmt.Errorf("%s: %s", prefix, err.Error())
 	}
 
 	if err == nil {
@@ -287,11 +286,11 @@ func (t *TypeConf) validate() error {
 	prefix := t.MyType + ".Load"
 	switch {
 	case t.RedirectMax < 0:
-		return lib.ErrNew(prefix, fmt.Sprintf("%s must be >= 0, got %d", KeyRedirectMax, t.RedirectMax))
+		return fmt.Errorf("%s: %s must be >= 0, got %d", prefix, KeyRedirectMax, t.RedirectMax)
 	case t.FetchBodySizeMax <= 0:
-		return lib.ErrNew(prefix, fmt.Sprintf("%s must be > 0, got %d", KeyFetchBodySizeMax, t.FetchBodySizeMax))
+		return fmt.Errorf("%s: %s must be > 0, got %d", prefix, KeyFetchBodySizeMax, t.FetchBodySizeMax)
 	case t.SearchBodySizeMax <= 0:
-		return lib.ErrNew(prefix, fmt.Sprintf("%s must be > 0, got %d", KeySearchBodySizeMax, t.SearchBodySizeMax))
+		return fmt.Errorf("%s: %s must be > 0, got %d", prefix, KeySearchBodySizeMax, t.SearchBodySizeMax)
 	}
 	return nil
 }
