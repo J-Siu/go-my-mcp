@@ -78,9 +78,11 @@ var Conf TypeConf
 var Vip = viper.New()
 
 type TypeConf struct {
-	lib.Embedded
-	// Shared secret required from clients. Empty disables access control.
-	ApiKey            string `json:"ApiKey"`
+	Debug       bool   `json:"Debug"`
+	Initialized bool   `json:"Initialized,omitempty"`
+	MyType      string `json:"MyType"`
+
+	ApiKey            string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
 	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
 	FileConf          string `json:"FileConf"`
 	ListenAddress     string `json:"ListenAddress"`
@@ -206,7 +208,7 @@ func init() {
 	Vip.SetDefault(KeyDebug, false)
 
 	// keep the logger correct even before the first Load (e.g. init-time errors)
-	SetupLog(false)
+	DebugLog(false)
 }
 
 func (t *TypeConf) New() *TypeConf {
@@ -242,7 +244,10 @@ func (t *TypeConf) Effective() TypeConfEffective {
 // A missing config file is not an error, the defaults are used instead.
 func (t *TypeConf) Load() error {
 	prefix := t.MyType + ".Load"
-	t.Err = nil
+	var (
+		err    error
+		values typeConfValues
+	)
 
 	t.FileConf = Vip.GetString(KeyFileConf)
 	if t.FileConf == "" {
@@ -250,34 +255,31 @@ func (t *TypeConf) Load() error {
 	}
 	Vip.SetConfigFile(TildeEnvExpand(t.FileConf))
 	if err := Vip.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		t.Err = lib.ErrNew(prefix, err.Error())
+		err = lib.ErrNew(prefix, err.Error())
 	}
 
-	var values typeConfValues
-	if t.Err == nil {
-		if t.Err = Vip.Unmarshal(&values); t.Err != nil {
-			t.Err = lib.ErrNew(prefix, t.Err.Error())
-		}
+	if err = Vip.Unmarshal(&values); err != nil {
+		err = lib.ErrNew(prefix, err.Error())
 	}
 
-	if t.Err == nil {
+	if err == nil {
 		t.ApiKey = values.ApiKey
 		t.ListenAddress = values.ListenAddress
 		t.SearXngUrl = values.SearXngUrl
 		t.Debug = Vip.GetBool(KeyDebug)
 		// setup the logger before validating, so a config error is also reported
 		// at the level the user asked for
-		SetupLog(t.Debug)
+		DebugLog(t.Debug)
 		// read the numeric keys directly; Unmarshal does not resolve them reliably
 		t.RedirectMax = Vip.GetInt(KeyRedirectMax)
 		t.FetchBodySizeMax = Vip.GetInt64(KeyFetchBodySizeMax)
 		t.SearchBodySizeMax = Vip.GetInt64(KeySearchBodySizeMax)
-		t.Err = t.validate()
+		err = t.validate()
 	}
-	if t.Err == nil {
+	if err == nil {
 		t.Initialized = true
 	}
-	return t.Err
+	return err
 }
 
 // validate - reject values that would break the tools at run time

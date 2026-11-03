@@ -6,16 +6,15 @@ import (
 	"net/http"
 
 	"fj.vms.local/jsds/go-my-mcp/global"
-	"fj.vms.local/jsds/go-my-mcp/lib"
 	"fj.vms.local/jsds/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TypeServer struct {
-	lib.Embedded
+	MyType string `json:"MyType"`
 
 	ListenAddress string
-	McpServer     *mcp.Server
+	Server        *mcp.Server
 	Auth          TypeAuth
 }
 
@@ -25,7 +24,7 @@ func (t *TypeServer) New(listenAddress, apiKey string) *TypeServer {
 	t.MyType = "TypeServer"
 	// prefix := t.MyType + ".New"
 	// the SDK logs session and protocol activity through this logger
-	t.McpServer = mcp.NewServer(&mcp.Implementation{
+	t.Server = mcp.NewServer(&mcp.Implementation{
 		Name:    "go-my-mcp",
 		Version: global.Version(),
 	}, &mcp.ServerOptions{Logger: slog.Default()})
@@ -36,7 +35,7 @@ func (t *TypeServer) New(listenAddress, apiKey string) *TypeServer {
 
 // Register tool
 func (t *TypeServer) Register(tool tool.Tool) *TypeServer {
-	tool.Register(t.McpServer)
+	tool.Register(t.Server)
 	return t
 }
 
@@ -44,12 +43,11 @@ func (t *TypeServer) Run() error {
 	prefix := t.MyType + ".Run"
 	// MCP server using mcp go-sdk
 	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
-		return t.McpServer
+		return t.Server
 	}, nil)
 	slog.Debug(prefix, "listen", t.ListenAddress, "auth", t.Auth.Key != "")
-	t.Err = http.ListenAndServe(t.ListenAddress, t.Auth.Middleware(handler))
-	if t.Err != nil {
-		return errors.New(prefix + ": " + t.Err.Error())
+	if err := http.ListenAndServe(t.ListenAddress, t.Auth.Middleware(handler)); err != nil {
+		return errors.New(prefix + ": " + err.Error())
 	}
 	return nil
 }

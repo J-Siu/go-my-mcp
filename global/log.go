@@ -27,17 +27,17 @@ import (
 	"os"
 )
 
-// Level - slog level for the configured Debug flag
-func Level(debug bool) slog.Level {
+// sLogLevel - slog level for the configured Debug flag
+func sLogLevel(debug bool) slog.Level {
 	if debug {
 		return slog.LevelDebug
 	}
 	return slog.LevelInfo
 }
 
-// SetupLog - install the process-wide slog logger, honoring the Debug flag
-func SetupLog(debug bool) {
+// DebugLog - install the process-wide slog logger, honoring the Debug flag
+func DebugLog(enable bool) {
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: Level(debug),
+		Level: sLogLevel(enable),
 	})))
 }
