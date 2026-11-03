@@ -1,3 +1,8 @@
+- v1.0.4
+  - Changed the default SearXNG URL to `http://localhost:8080`
+  - Changed the Go module path to `github.com/J-Siu/go-my-mcp`
+  - Consolidated shared helpers and removed the unused `lib` package
+  - Updated README build, install and Docker information
 - v1.0.3
   - Remove helper-mini dependency
 - v1.0.2
