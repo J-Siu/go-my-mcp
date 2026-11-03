@@ -39,7 +39,7 @@ const (
 	DefaultConfigFile = "~/.config/" + AppName + ".json"
 
 	DefaultListenAddress = ":9000"
-	DefaultSearXngUrl    = "http://xng.vms.local"
+	DefaultSearXngUrl    = "http://localhost:8080"
 
 	// Maximum number of redirects a single web_fetch follows
 	DefaultRedirectMax = 10
