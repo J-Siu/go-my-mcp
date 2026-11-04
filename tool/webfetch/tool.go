@@ -53,7 +53,7 @@ func (t *TypeWebFetch) New(bodySizeMax int64, redirectMax int) (*TypeWebFetch, e
 func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 	prefix := t.MyType + ".Register"
 	if !t.Initialized {
-		slog.Error("%s: %s", prefix, "not initialized")
+		slog.Error(prefix + ": not initialized")
 		return
 	}
 	mcp.AddTool(
@@ -63,5 +63,5 @@ func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 			Description: "fetch a web page by URL, following redirects"},
 		t.Fetch,
 	)
-	slog.Debug("%s: %s", prefix, "registered")
+	slog.Debug(prefix + ": registered")
 }

@@ -55,7 +55,7 @@ func (t *TypeSearXng) New(searXngUrl string, bodySizeMax int64) (searXng *TypeSe
 			slog.Int64("BodySizeMax", t.BodySizeMax),
 		))
 	} else {
-		slog.Error("%s: %s", prefix, t.Err.Error())
+		slog.Error(prefix + ": " + t.Err.Error())
 	}
 	return t, t.Err
 }
@@ -77,5 +77,5 @@ func (t *TypeSearXng) Register(mcpServer *mcp.Server) {
 			Description: "web search"},
 		t.Search,
 	)
-	slog.Debug("%s: %s", prefix, "registered")
+	slog.Debug(prefix + ": registered")
 }
