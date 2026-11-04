@@ -1,6 +1,25 @@
 /*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+Copyright © 2026 John, Sing Dao, Siu <john.sd.siu@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 */
+
 package cmd
 
 import (
@@ -17,23 +36,16 @@ var startCmd = &cobra.Command{
 	Aliases: []string{"s"},
 	Short:   "Start the SearXNG MCP server over HTTP",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var (
-			mcpSrv = new(server.TypeServer)
-			sx     = new(searxng.TypeSearXng)
-			wf     = new(webfetch.TypeWebFetch)
-			err    error
-		)
-		sx, err = sx.New(global.Conf.SearXngUrl, global.Conf.SearchBodySizeMax)
+		sx, err := new(searxng.TypeSearXng).New(global.Conf.SearXngUrl, global.Conf.SearchBodySizeMax)
 		if err == nil {
-			wf, err = wf.New(global.Conf.FetchBodySizeMax, global.Conf.RedirectMax)
-		}
-		if err == nil {
-			sx.TlsCheck = false
-			err = mcpSrv.
-				New(global.Conf.ListenAddress, global.Conf.ApiKey).
-				Register(sx).
-				Register(wf).
-				Run()
+			wf, err := new(webfetch.TypeWebFetch).New(global.Conf.FetchBodySizeMax, global.Conf.RedirectMax)
+			if err == nil {
+				err = new(server.TypeServer).
+					New(global.Conf.ListenAddress, global.Conf.ApiKey).
+					Register(sx).
+					Register(wf).
+					Run()
+			}
 		}
 		if err != nil {
 			// a bind failure is an environment problem, not a usage error

@@ -1,3 +1,5 @@
+- v1.0.5
+  - Cleanup and simplify `Conf`
 - v1.0.4
   - Changed the default SearXNG URL to `http://localhost:8080`
   - Changed the Go module path to `github.com/J-Siu/go-my-mcp`

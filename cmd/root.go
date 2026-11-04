@@ -1,6 +1,25 @@
 /*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+Copyright © 2026 John, Sing Dao, Siu <john.sd.siu@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 */
+
 package cmd
 
 import (
@@ -8,7 +27,6 @@ import (
 
 	"github.com/J-Siu/go-my-mcp/global"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
 
 var rootCmd = &cobra.Command{
@@ -16,7 +34,6 @@ var rootCmd = &cobra.Command{
 	Short: "MCP for SearXNG",
 	// Resolve the effective configuration once for every sub command, after flag parsing
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		trackFlags(cmd)
 		if err := global.Conf.Load(); err != nil {
 			// a broken config is not a usage error
 			cmd.SilenceUsage = true
@@ -33,48 +50,16 @@ func Execute() {
 	}
 }
 
-// flagKeys - command line flags and the viper keys they feed
-var flagKeys = []struct{ name, key string }{
-	{"config", global.KeyFileConf},
-	{"debug", global.KeyDebug},
-	{"listen", global.KeyListenAddress},
-	{"SearXngUrl", global.KeySearXngUrl},
-	{"RedirectMax", global.KeyRedirectMax},
-	{"FetchBodySizeMax", global.KeyFetchBodySizeMax},
-	{"SearchBodySizeMax", global.KeySearchBodySizeMax},
-}
-
-// record which flags were given on the command line, for `config` to report
-func trackFlags(cmd *cobra.Command) {
-	setFlags := map[string]string{}
-	cmd.Flags().Visit(func(f *pflag.Flag) {
-		for _, fk := range flagKeys {
-			if fk.name == f.Name {
-				setFlags[fk.key] = f.Value.String()
-			}
-		}
-	})
-	global.Vip.Set(global.KeyConfigFlag, setFlags)
-}
-
-// Bind a cobra flag to a viper key, so viper resolves the effective value
-func bindFlag(name, key string) {
-	if err := global.Vip.BindPFlag(key, rootCmd.PersistentFlags().Lookup(name)); err != nil {
-		// only reachable on a flag/key mismatch in the code below
-		panic("cmd.bindFlag: " + err.Error())
-	}
-}
-
 func init() {
-	rootCmd.PersistentFlags().StringP("config", "c", "", "config file path (default \""+global.DefaultConfigFile+"\")")
-	rootCmd.PersistentFlags().BoolP("debug", "d", false, "debug logging")
-	rootCmd.PersistentFlags().StringP("listen", "l", global.DefaultListenAddress, "HTTP listen address")
-	rootCmd.PersistentFlags().StringP("SearXngUrl", "u", global.DefaultSearXngUrl, "SearXNG URL")
-	rootCmd.PersistentFlags().Int("RedirectMax", global.DefaultRedirectMax, "maximum redirects followed by web_fetch")
-	rootCmd.PersistentFlags().Int64("FetchBodySizeMax", global.DefaultFetchBodySizeMax, "web_fetch response body limit in bytes")
-	rootCmd.PersistentFlags().Int64("SearchBodySizeMax", global.DefaultSearchBodySizeMax, "searxng_search response body limit in bytes")
+	rootCmd.PersistentFlags().StringVarP(&global.Conf.FileConf, "FileConf", "c", global.Conf.FileConf, "config file path (default \""+global.DefaultConfigFile+"\")")
+	rootCmd.PersistentFlags().BoolVarP(&global.Conf.Debug, "Debug", "d", global.Conf.Debug, "debug logging")
+	rootCmd.PersistentFlags().StringVarP(&global.Conf.ListenAddress, "ListenAddress", "l", global.Conf.ListenAddress, "HTTP listen address")
+	rootCmd.PersistentFlags().StringVarP(&global.Conf.SearXngUrl, "SearXngUrl", "u", global.Conf.SearXngUrl, "SearXNG URL")
+	rootCmd.PersistentFlags().IntVar(&global.Conf.RedirectMax, "RedirectMax", global.Conf.RedirectMax, "maximum redirects followed by web_fetch")
+	rootCmd.PersistentFlags().Int64Var(&global.Conf.FetchBodySizeMax, "FetchBodySizeMax", global.Conf.FetchBodySizeMax, "web_fetch response body limit in bytes")
+	rootCmd.PersistentFlags().Int64Var(&global.Conf.SearchBodySizeMax, "SearchBodySizeMax", global.Conf.SearchBodySizeMax, "searxng_search response body limit in bytes")
 
-	for _, fk := range flagKeys {
-		bindFlag(fk.name, fk.key)
+	if err := global.Vip.BindPFlags(rootCmd.PersistentFlags()); err != nil {
+		panic("cmd.init: " + err.Error())
 	}
 }

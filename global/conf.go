@@ -23,10 +23,9 @@ THE SOFTWARE.
 package global
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
+	"log/slog"
+	"reflect"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -35,7 +34,7 @@ import (
 const (
 	AppName = "go-my-mcp"
 
-	// Default config file location, used when --config is not given
+	// Default config file location, used when --FileConf is not given
 	DefaultConfigFile = "~/.config/" + AppName + ".json"
 
 	DefaultListenAddress = ":9000"
@@ -52,189 +51,56 @@ const (
 	EnvPrefix = "GO_MY_MCP"
 
 	// Replaces the API key in the `config` output, so it is never echoed
-	redacted = "<redacted>"
+	txt_Redacted = "<redacted>"
 )
-
-const (
-	KeyApiKey            = "ApiKey"
-	KeyDebug             = "Debug"
-	KeyFetchBodySizeMax  = "FetchBodySizeMax"
-	KeyFileConf          = "FileConf"
-	KeyListenAddress     = "ListenAddress"
-	KeyRedirectMax       = "RedirectMax"
-	KeySearchBodySizeMax = "SearchBodySizeMax"
-
-	// pseudo key, tracks which flags cobra actually set. Not part of allKeys(),
-	// so it is neither reported nor read from the environment.
-	KeyConfigFlag = "ConfigFlag"
-	KeySearXngUrl = "SearXngUrl"
-)
-
-// Effective configuration, populated by [Conf.Load]
-var Conf TypeConf
 
 // Viper instance backing [Conf]. Cobra flags are bound to it from the `cmd` package.
 var Vip = viper.New()
 
 type TypeConf struct {
-	Debug       bool   `json:"Debug"`
-	Initialized bool   `json:"Initialized,omitempty"`
-	MyType      string `json:"MyType"`
-
-	ApiKey            string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
-	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
 	FileConf          string `json:"FileConf"`
+	ApiKey            string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
 	ListenAddress     string `json:"ListenAddress"`
-	RedirectMax       int    `json:"RedirectMax"`
-	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
 	SearXngUrl        string `json:"SearXngUrl"`
+	RedirectMax       int    `json:"RedirectMax"`
+	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
+	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
+	Debug             bool   `json:"Debug"`
 }
 
-// Values read from config file, environment and flags
-type typeConfValues struct {
-	ApiKey        string
-	ListenAddress string
-	SearXngUrl    string
+// Runtime configuration, populated by [Conf.Load]
+var Conf = TypeConf{
+	ListenAddress:     DefaultListenAddress,
+	SearXngUrl:        DefaultSearXngUrl,
+	RedirectMax:       DefaultRedirectMax,
+	FetchBodySizeMax:  DefaultFetchBodySizeMax,
+	SearchBodySizeMax: DefaultSearchBodySizeMax,
 }
 
-// TypeConfEffective - configuration as shown by the `config` sub command
-type TypeConfEffective struct {
-	FileConf          string            `json:"FileConf"`
-	ApiKey            string            `json:"ApiKey"`
-	ListenAddress     string            `json:"ListenAddress"`
-	SearXngUrl        string            `json:"SearXngUrl"`
-	RedirectMax       int               `json:"RedirectMax"`
-	FetchBodySizeMax  int64             `json:"FetchBodySizeMax"`
-	SearchBodySizeMax int64             `json:"SearchBodySizeMax"`
-	Debug             bool              `json:"Debug"`
-	Version           string            `json:"Version"`
-	Source            map[string]string `json:"Source"`
-	Env               TypeConfEnv       `json:"Env"`
-}
-
-// Layers a value can come from, in increasing precedence
-const (
-	sourceDefault = "default"
-	sourceEnv     = "env"
-	sourceFlag    = "flag"
-)
-
-// TypeConfEnv - environment variable state for the configuration keys
-type TypeConfEnv struct {
-	// Prefix used to build the environment variable names
-	Prefix string `json:"Prefix"`
-	// Names viper reads, whether set or not
-	Recognized []string `json:"Recognized"`
-	// Values currently present in the environment
-	Set map[string]string `json:"Set"`
-}
-
-// Env - environment variables in effect for the configuration
-func (t *TypeConf) Env() TypeConfEnv {
-	env := TypeConfEnv{
-		Prefix: EnvPrefix,
-		Set:    map[string]string{},
-	}
-	for _, key := range allKeys() {
-		env.Recognized = append(env.Recognized, envName(key))
-	}
-	set := map[string]string{}
-	for _, entry := range os.Environ() {
-		name, value, found := strings.Cut(entry, "=")
-		if found && strings.HasPrefix(name, EnvPrefix+"_") {
-			set[name] = value
+func configKeys() []string {
+	confType := reflect.TypeOf(TypeConf{})
+	keys := make([]string, 0, confType.NumField())
+	for i := 0; i < confType.NumField(); i++ {
+		field := confType.Field(i)
+		if field.PkgPath == "" && field.Tag.Get("mapstructure") != "-" {
+			keys = append(keys, field.Name)
 		}
 	}
-	env.Set = set
-	return env
-}
-
-// Source - which layer supplied each key: default, env or flag.
-//
-// Only the winning layer is reported; the config file is folded into `default`
-// because a missing file is not an error and not every key is present in it.
-// Flag and env are checked before the file, matching [TypeConf.Load] precedence.
-func (t *TypeConf) Source() map[string]string {
-	source := map[string]string{}
-	setFlags, _ := Vip.Get(KeyConfigFlag).(map[string]string)
-	for _, key := range allKeys() {
-		switch {
-		case setFlags[key] != "":
-			source[key] = sourceFlag
-		case os.Getenv(envName(key)) != "":
-			source[key] = sourceEnv
-		default:
-			source[key] = sourceDefault
-		}
-	}
-	return source
-}
-
-// Env var name for a viper key, e.g. `ListenAddress` -> `GO_MY_MCP_LISTENADDRESS`
-func envName(key string) string {
-	return EnvPrefix + "_" + strings.ReplaceAll(strings.ToUpper(key), ".", "_")
-}
-
-// Viper keys known to the configuration
-func allKeys() []string {
-	return []string{
-		KeyApiKey,
-		KeyFileConf,
-		KeyListenAddress,
-		KeySearXngUrl,
-		KeyRedirectMax,
-		KeyFetchBodySizeMax,
-		KeySearchBodySizeMax,
-		KeyDebug,
-	}
+	return keys
 }
 
 func init() {
-	Conf.MyType = "TypeConf"
-
 	Vip.SetConfigType("json")
 	Vip.SetEnvPrefix(EnvPrefix)
 	Vip.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	conf := reflect.ValueOf(Conf)
+	for _, key := range configKeys() {
+		Vip.SetDefault(key, conf.FieldByName(key).Interface())
+	}
 	Vip.AutomaticEnv()
 
-	// registered so AutomaticEnv sees the key; also pins the type to string
-	Vip.SetDefault(KeyApiKey, "")
-	Vip.SetDefault(KeyListenAddress, DefaultListenAddress)
-	Vip.SetDefault(KeySearXngUrl, DefaultSearXngUrl)
-	Vip.SetDefault(KeyRedirectMax, DefaultRedirectMax)
-	Vip.SetDefault(KeyFetchBodySizeMax, DefaultFetchBodySizeMax)
-	Vip.SetDefault(KeySearchBodySizeMax, DefaultSearchBodySizeMax)
-	Vip.SetDefault(KeyDebug, false)
-
 	// keep the logger correct even before the first Load (e.g. init-time errors)
-	DebugLog(false)
-}
-
-func (t *TypeConf) New() *TypeConf {
-	t.Initialized = true
-	t.MyType = "TypeConf"
-	return t
-}
-
-// Effective - configuration values in use, for display
-func (t *TypeConf) Effective() TypeConfEffective {
-	apiKey := ""
-	if t.ApiKey != "" {
-		apiKey = redacted
-	}
-	return TypeConfEffective{
-		FileConf:          t.FileConf,
-		ApiKey:            apiKey,
-		ListenAddress:     t.ListenAddress,
-		SearXngUrl:        t.SearXngUrl,
-		RedirectMax:       t.RedirectMax,
-		FetchBodySizeMax:  t.FetchBodySizeMax,
-		SearchBodySizeMax: t.SearchBodySizeMax,
-		Debug:             t.Debug,
-		Version:           Version(),
-		Source:            t.Source(),
-		Env:               t.Env(),
-	}
+	SetDebug(false)
 }
 
 // Load - resolve the effective configuration. Precedence, lowest to highest:
@@ -242,60 +108,58 @@ func (t *TypeConf) Effective() TypeConfEffective {
 //
 // A missing config file is not an error, the defaults are used instead.
 func (t *TypeConf) Load() error {
-	prefix := t.MyType + ".Load"
+	const prefix = "TypeConf.Load"
 	var (
 		err    error
-		values typeConfValues
+		values TypeConf
 	)
-
-	t.FileConf = Vip.GetString(KeyFileConf)
-	if t.FileConf == "" {
-		t.FileConf = DefaultConfigFile
+	configFile := Vip.GetString("FileConf")
+	if configFile == "" {
+		configFile = DefaultConfigFile
 	}
-	Vip.SetConfigFile(TildeEnvExpand(t.FileConf))
-	if err := Vip.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		err = fmt.Errorf("%s: %s", prefix, err.Error())
+	Vip.SetConfigFile(TildeEnvExpand(configFile))
+	if err = Vip.ReadInConfig(); err != nil {
+		if Vip.GetBool("Debug") {
+			slog.Warn("could not read config file; continuing without it", "file", configFile, "error", err)
+		}
 	}
-
-	if err = Vip.Unmarshal(&values); err != nil {
-		err = fmt.Errorf("%s: %s", prefix, err.Error())
-	}
-
-	if err == nil {
-		t.ApiKey = values.ApiKey
-		t.ListenAddress = values.ListenAddress
-		t.SearXngUrl = values.SearXngUrl
-		t.Debug = Vip.GetBool(KeyDebug)
-		// setup the logger before validating, so a config error is also reported
-		// at the level the user asked for
-		DebugLog(t.Debug)
-		// read the numeric keys directly; Unmarshal does not resolve them reliably
-		t.RedirectMax = Vip.GetInt(KeyRedirectMax)
-		t.FetchBodySizeMax = Vip.GetInt64(KeyFetchBodySizeMax)
-		t.SearchBodySizeMax = Vip.GetInt64(KeySearchBodySizeMax)
-		err = t.validate()
+	values = *t
+	if err = Vip.Unmarshal(&values); err == nil {
+		values.FileConf = configFile
+		SetDebug(values.Debug) // Set the logger before validating
+		if values.Debug {
+			slog.Debug("effective configuration", "values", fmt.Sprintf("%+v", SafeConf(&values)))
+		}
+		err = values.validate()
 	}
 	if err == nil {
-		t.Initialized = true
+		*t = values
+	}
+	if err != nil {
+		err = fmt.Errorf("%s: %w", prefix, err)
 	}
 	return err
 }
 
 // validate - reject values that would break the tools at run time
 func (t *TypeConf) validate() error {
-	prefix := t.MyType + ".Load"
+	const prefix = "TypeConf.Load"
 	switch {
 	case t.RedirectMax < 0:
-		return fmt.Errorf("%s: %s must be >= 0, got %d", prefix, KeyRedirectMax, t.RedirectMax)
+		return fmt.Errorf("%s: RedirectMax must be >= 0, got %d", prefix, t.RedirectMax)
 	case t.FetchBodySizeMax <= 0:
-		return fmt.Errorf("%s: %s must be > 0, got %d", prefix, KeyFetchBodySizeMax, t.FetchBodySizeMax)
+		return fmt.Errorf("%s: FetchBodySizeMax must be > 0, got %d", prefix, t.FetchBodySizeMax)
 	case t.SearchBodySizeMax <= 0:
-		return fmt.Errorf("%s: %s must be > 0, got %d", prefix, KeySearchBodySizeMax, t.SearchBodySizeMax)
+		return fmt.Errorf("%s: SearchBodySizeMax must be > 0, got %d", prefix, t.SearchBodySizeMax)
 	}
 	return nil
 }
 
-// AuthEnabled - whether clients must present the API key
-func (t *TypeConf) AuthEnabled() bool {
-	return t.ApiKey != ""
+// SafeConf - create a copy of t with ApiKey redacted if not empty
+func SafeConf(t *TypeConf) *TypeConf {
+	safe := *t
+	if safe.ApiKey != "" {
+		safe.ApiKey = txt_Redacted
+	}
+	return &safe
 }

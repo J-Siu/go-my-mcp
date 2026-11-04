@@ -73,46 +73,11 @@ go-my-mcp config
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
   "SearchBodySizeMax": 2097152,
-  "Debug": false,
-  "Version": "v1.0.0",
-  "Source": {
-    "ApiKey": "default",
-    "Debug": "default",
-    "FetchBodySizeMax": "default",
-    "FileConf": "default",
-    "ListenAddress": "default",
-    "RedirectMax": "default",
-    "SearXngUrl": "default",
-    "SearchBodySizeMax": "default"
-  },
-  "Env": {
-    "Prefix": "GO_MY_MCP",
-    "Recognized": [
-      "GO_MY_MCP_APIKEY",
-      "GO_MY_MCP_FILECONF",
-      "GO_MY_MCP_LISTENADDRESS",
-      "GO_MY_MCP_SEARXNGURL",
-      "GO_MY_MCP_REDIRECTMAX",
-      "GO_MY_MCP_FETCHBODYSIZEMAX",
-      "GO_MY_MCP_SEARCHBODYSIZEMAX",
-      "GO_MY_MCP_DEBUG"
-    ],
-    "Set": {}
-  }
+  "Debug": false
 }
 ```
 
-Use it to confirm exactly which values are in effect after combining the config file, environment variables and flags.
-
-The `Source` block reports where each value came from — `default`, the `config` file, `env`, or `flag` — so a value that looks wrong can be traced to its origin immediately.
-
-The `Env` block reports the environment side of that resolution:
-
-| Field | Description |
-| --- | --- |
-| `Prefix` | Prefix used to build the variable names |
-| `Recognized` | Every variable name viper reads, whether set or not |
-| `Set` | Variables actually present in the environment, with their values |
+Use it to confirm which values are in effect after combining the config file, environment variables and flags.
 
 With overrides active:
 
@@ -129,57 +94,15 @@ GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
   "SearchBodySizeMax": 2097152,
-  "Debug": false,
-  "Version": "v1.0.0",
-  "Source": {
-    "ApiKey": "default",
-    "Debug": "default",
-    "FetchBodySizeMax": "default",
-    "FileConf": "default",
-    "ListenAddress": "env",
-    "RedirectMax": "default",
-    "SearXngUrl": "default",
-    "SearchBodySizeMax": "default"
-  },
-  "Env": {
-    "Prefix": "GO_MY_MCP",
-    "Recognized": [
-      "GO_MY_MCP_APIKEY",
-      "GO_MY_MCP_FILECONF",
-      "GO_MY_MCP_LISTENADDRESS",
-      "GO_MY_MCP_SEARXNGURL",
-      "GO_MY_MCP_REDIRECTMAX",
-      "GO_MY_MCP_FETCHBODYSIZEMAX",
-      "GO_MY_MCP_SEARCHBODYSIZEMAX",
-      "GO_MY_MCP_DEBUG"
-    ],
-    "Set": {
-      "GO_MY_MCP_LISTENADDRESS": "127.0.0.1:8080"
-    }
-  }
+  "Debug": false
 }
-```
-
-`Source` reports the highest-precedence origin, so in the output above `ListenAddress` is `env` even if the config file also set it. Adding a flag moves the entry to `flag`:
-
-```sh
-GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp --listen :9999 config
-```
-
-```json
-  "Source": {
-    "ListenAddress": "flag",
-    ...
-  },
 ```
 
 `config` writes JSON to stdout, so it can be piped directly:
 
 ```sh
-go-my-mcp config | jq '.Source'
+go-my-mcp config | jq '.ListenAddress'
 ```
-
-Any `GO_MY_MCP_`-prefixed variable appears under `Set`, so a typo such as `GO_MY_MCP_LISENADDRESS` shows up there while missing from `Recognized` — a quick way to spot variables that are being ignored.
 
 ## Configuration
 
@@ -194,12 +117,12 @@ Lowest to highest:
 
 ### Config file
 
-The default path is `~/.config/go-my-mcp.json`. A missing file is **not** an error — the defaults are used instead. A file that exists but cannot be parsed is an error.
+The default path is `~/.config/go-my-mcp.json`. If the file cannot be read, the program continues with defaults, environment variables and flags; a warning is logged only when debug logging is enabled.
 
-Override the path with the root `--config` flag:
+Override the path with the root `--FileConf` flag (or `-c`):
 
 ```sh
-go-my-mcp start --config ./local.json
+go-my-mcp start --FileConf ./local.json
 ```
 
 `~` and environment variables in the path are expanded.
@@ -243,13 +166,13 @@ These are persistent (root) flags, so they work with every sub command:
 
 | Flag | Key | Default | Description |
 | --- | --- | --- | --- |
-| `-c`, `--config` | `FileConf` | `~/.config/go-my-mcp.json` | Config file path |
-| `-l`, `--listen` | `ListenAddress` | `:9000` | HTTP listen address |
+| `-c`, `--FileConf` | `FileConf` | `~/.config/go-my-mcp.json` | Config file path |
+| `-l`, `--ListenAddress` | `ListenAddress` | `:9000` | HTTP listen address |
 | `-u`, `--SearXngUrl` | `SearXngUrl` | `http://localhost:8080` | SearXNG base URL |
 | | `--RedirectMax` | `10` | Max redirects followed by `web_fetch` |
 | | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
 | | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
-| `-d`, `--debug` | `Debug` | `false` | Debug logging |
+| `-d`, `--Debug` | `Debug` | `false` | Debug logging |
 
 ### Access control
 
@@ -298,7 +221,7 @@ time=... level=ERROR msg=TypeWebFetch.Fetch status=404 content_len=0 content_typ
 `Debug: false` (the default) keeps the level at `INFO`, where the tools are silent — only errors reaching the MCP client are surfaced, and the client already receives them.
 
 ```sh
-go-my-mcp start --debug        # or Debug: true / GO_MY_MCP_DEBUG=true
+go-my-mcp start --Debug        # or Debug: true / GO_MY_MCP_DEBUG=true
 ```
 
 Debug adds one line per request (URL, each redirect hop, status, body length, and `elapsed_ms`), plus the resolved tool settings at startup. Response bodies are never logged — they are returned to the client.
