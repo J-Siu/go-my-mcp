@@ -58,52 +58,6 @@ The MCP endpoint is served at `/mcp` using the streamable HTTP transport:
 http://localhost:9000/mcp
 ```
 
-### Show the effective configuration
-
-```sh
-go-my-mcp config
-```
-
-```json
-{
-  "FileConf": "~/.config/go-my-mcp.json",
-  "ApiKey": "",
-  "ListenAddress": ":9000",
-  "SearXngUrl": "http://localhost:8080",
-  "RedirectMax": 10,
-  "FetchBodySizeMax": 2097152,
-  "SearchBodySizeMax": 2097152,
-  "Debug": false
-}
-```
-
-Use it to confirm which values are in effect after combining the config file, environment variables and flags.
-
-With overrides active:
-
-```sh
-GO_MY_MCP_LISTENADDRESS=127.0.0.1:8080 go-my-mcp config
-```
-
-```json
-{
-  "FileConf": "~/.config/go-my-mcp.json",
-  "ApiKey": "",
-  "ListenAddress": "127.0.0.1:8080",
-  "SearXngUrl": "http://localhost:8080",
-  "RedirectMax": 10,
-  "FetchBodySizeMax": 2097152,
-  "SearchBodySizeMax": 2097152,
-  "Debug": false
-}
-```
-
-`config` writes JSON to stdout, so it can be piped directly:
-
-```sh
-go-my-mcp config | jq '.ListenAddress'
-```
-
 ## Configuration
 
 ### Precedence
@@ -115,27 +69,19 @@ Lowest to highest:
 3. Environment variables
 4. Command line flags
 
-### Config file
+### Config File
 
-The default path is `~/.config/go-my-mcp.json`. If the file cannot be read, the program continues with defaults, environment variables and flags; a warning is logged only when debug logging is enabled.
-
-Override the path with the root `--FileConf` flag (or `-c`):
-
-```sh
-go-my-mcp start --FileConf ./local.json
-```
-
-`~` and environment variables in the path are expanded.
-
-Example:
+`~/.config/go-my-mcp.json`
 
 ```json
 {
-  "ListenAddress": "127.0.0.1:9000",
+  "ApiKey": "",
+  "ListenAddress": ":9000",
   "SearXngUrl": "http://localhost:8080",
   "RedirectMax": 10,
   "FetchBodySizeMax": 2097152,
-  "SearchBodySizeMax": 2097152
+  "SearchBodySizeMax": 2097152,
+  "Debug": false
 }
 ```
 
@@ -152,7 +98,7 @@ Example:
 
 `RedirectMax` must be `>= 0`; the body limits must be `> 0`. Out-of-range values are rejected at startup instead of silently misbehaving.
 
-### Environment variables
+### Environment Variables
 
 Prefix `GO_MY_MCP_`, upper-cased key name:
 
@@ -193,7 +139,22 @@ Requests without a valid key get `401 Unauthorized` plus a `WWW-Authenticate: Be
 
 When `ApiKey` is empty the server requires nothing, so an existing setup keeps working. That also means an unset key is *not* a safe default for an exposed host — set one there.
 
-For VS Code `mcp.json`, add the header to the server entry:
+## VS Code MCP Server Setup
+
+Pick HTTP endpoint. Or create `$HOME/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "go-my-mcp": {
+      "type": "http",
+      "url": "http://localhost:9000/mcp"
+    }
+  }
+}
+```
+
+With API key
 
 ```json
 {
@@ -202,48 +163,6 @@ For VS Code `mcp.json`, add the header to the server entry:
       "type": "http",
       "url": "http://localhost:9000/mcp",
       "headers": { "Authorization": "Bearer s3cr3t" }
-    }
-  }
-}
-```
-
-### Logging
-
-Logs go to **stderr** as [slog](https://pkg.go.dev/log/slog) text, so they never mix with `config`/`version` output on stdout:
-
-```text
-time=... level=DEBUG msg=TypeWebFetch.Fetch url=http://example.com/start
-time=... level=DEBUG msg=TypeWebFetch.Fetch redirect=1 to=http://example.com/mid
-time=... level=DEBUG msg=TypeWebFetch.Fetch status=200 content_len=40 elapsed_ms=3 content_type="text/html; charset=utf-8"
-time=... level=ERROR msg=TypeWebFetch.Fetch status=404 content_len=0 content_type="" err="HTTP 404 Not Found" elapsed_ms=1
-```
-
-`Debug: false` (the default) keeps the level at `INFO`, where the tools are silent — only errors reaching the MCP client are surfaced, and the client already receives them.
-
-```sh
-go-my-mcp start --Debug        # or Debug: true / GO_MY_MCP_DEBUG=true
-```
-
-Debug adds one line per request (URL, each redirect hop, status, body length, and `elapsed_ms`), plus the resolved tool settings at startup. Response bodies are never logged — they are returned to the client.
-
-Each request is logged exactly once at the tool boundary, on success or failure, so errors are not duplicated. The MCP SDK is wired to the same `slog` logger, so protocol events such as session connect/initialize are visible at `INFO`:
-
-```text
-time=... level=INFO msg="server connecting"
-time=... level=INFO msg="server session connected" session_id=GBPUED452JZAOAPEXWC6FHFYVN
-time=... level=INFO msg="session initialized"
-```
-
-## MCP client setup
-
-Point your MCP client at the running server's HTTP endpoint. For example, in VS Code `$HOME/.copilot/mcp-config.json`:
-
-```json
-{
-  "mcpServers": {
-    "go-my-mcp": {
-      "type": "http",
-      "url": "http://localhost:9000/mcp"
     }
   }
 }
