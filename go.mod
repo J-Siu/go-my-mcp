@@ -3,7 +3,6 @@ module github.com/J-Siu/go-my-mcp
 go 1.27.2
 
 require (
-	github.com/charlievieth/strcase v0.0.6
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
