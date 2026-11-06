@@ -67,7 +67,7 @@ func (t *TypeSearXng) Register(mcpServer *mcp.Server) {
 		return
 	}
 	if !t.Initialized {
-		slog.Error("%s: %s", prefix, "not initialized")
+		slog.Error(prefix + ": not initialized")
 		return
 	}
 	mcp.AddTool(
