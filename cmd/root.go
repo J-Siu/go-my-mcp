@@ -30,8 +30,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   global.AppName,
-	Short: "MCP for SearXNG",
+	Use:     global.AppName,
+	Short:   "MCP for SearXNG",
+	Version: global.Version(),
 	// Resolve the effective configuration once for every sub command, after flag parsing
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := global.Conf.Load(); err != nil {
