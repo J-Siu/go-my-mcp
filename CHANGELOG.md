@@ -1,3 +1,7 @@
+- v1.0.6
+  - Cleanup unused code
+  - Fix log format
+  - Update README
 - v1.0.5
   - Cleanup and simplify `Conf`
 - v1.0.4
