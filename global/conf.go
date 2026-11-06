@@ -127,9 +127,6 @@ func (t *TypeConf) Load() error {
 	if err = Vip.Unmarshal(&values); err == nil {
 		values.FileConf = configFile
 		SetDebug(values.Debug) // Set the logger before validating
-		if values.Debug {
-			slog.Debug("effective configuration", "values", fmt.Sprintf("%+v", SafeConf(&values)))
-		}
 		err = values.validate()
 	}
 	if err == nil {
