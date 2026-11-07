@@ -31,7 +31,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -66,7 +66,7 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 		url_target *url.URL
 	)
 
-	url_target, err = global.UrlParse(input.URL)
+	url_target, err = helper.UrlParse(input.URL)
 	if err == nil {
 		slog.Debug(prefix, "url", input.URL)
 		result.URL = url_target.String()
@@ -87,7 +87,7 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 					return fmt.Errorf("stopped after %d redirects", t.RedirectMax)
 				}
 				// each hop must obey the same rules as the requested URL
-				if _, err := global.UrlParse(req.URL.String()); err != nil {
+				if _, err := helper.UrlParse(req.URL.String()); err != nil {
 					return fmt.Errorf("redirect rejected: %w", err)
 				}
 				slog.Debug(prefix, "redirect", redirects, "to", req.URL.String())

@@ -26,7 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ var configCmd = &cobra.Command{
 	Short:   "Show the effective configuration",
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		out, err := json.MarshalIndent(global.SafeConf(&global.Conf), "", "  ")
+		out, err := json.MarshalIndent(conf.SafeConf(&conf.Conf), "", "  ")
 		if err != nil {
 			return err
 		}

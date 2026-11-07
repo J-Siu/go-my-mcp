@@ -20,15 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package global
+package helper
 
 import (
 	"log/slog"
 	"os"
 )
 
-// SetDebug - install the process-wide slog logger, honoring the Debug flag
-func SetDebug(enable bool) {
+// EnableDebug - install the process-wide slog logger, honoring the Debug flag
+func EnableDebug(enable bool) {
 	level := slog.LevelInfo
 	if enable {
 		level = slog.LevelDebug

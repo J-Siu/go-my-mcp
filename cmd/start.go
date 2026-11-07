@@ -23,7 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/J-Siu/go-my-mcp/server"
 	"github.com/J-Siu/go-my-mcp/tool/searxng"
 	"github.com/J-Siu/go-my-mcp/tool/webfetch"
@@ -36,12 +36,12 @@ var startCmd = &cobra.Command{
 	Aliases: []string{"s"},
 	Short:   "Start the SearXNG MCP server over HTTP",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		sx, err := new(searxng.TypeSearXng).New(global.Conf.SearXngUrl, global.Conf.SearchBodySizeMax)
+		sx, err := new(searxng.TypeSearXng).New(conf.Conf.SearXngUrl, conf.Conf.SearchBodySizeMax)
 		if err == nil {
-			wf, err := new(webfetch.TypeWebFetch).New(global.Conf.FetchBodySizeMax, global.Conf.RedirectMax)
+			wf, err := new(webfetch.TypeWebFetch).New(conf.Conf.FetchBodySizeMax, conf.Conf.RedirectMax)
 			if err == nil {
 				err = new(server.TypeServer).
-					New(global.Conf.ListenAddress, global.Conf.ApiKey).
+					New(conf.Conf.ListenAddress, conf.Conf.ApiKey).
 					Register(sx).
 					Register(wf).
 					Run()

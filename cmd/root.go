@@ -23,24 +23,29 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/conf"
+	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:     global.AppName,
+	Use:     conf.AppName,
 	Short:   "MCP for SearXNG",
-	Version: global.Version(),
+	Version: helper.Version(),
 	// Resolve the effective configuration once for every sub command, after flag parsing
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := global.Conf.Load(); err != nil {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
+		if err := conf.Conf.Load(); err != nil {
 			// a broken config is not a usage error
 			cmd.SilenceUsage = true
-			return err
 		}
-		return nil
+		if conf.Conf.Debug {
+			fmt.Println("Version:", helper.Version())
+			fmt.Println(helper.Struct2String("Conf", &conf.Conf))
+		}
+		return err
 	},
 }
 
@@ -52,15 +57,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&global.Conf.FileConf, "FileConf", "c", global.Conf.FileConf, "config file path (default \""+global.DefaultConfigFile+"\")")
-	rootCmd.PersistentFlags().BoolVarP(&global.Conf.Debug, "Debug", "d", global.Conf.Debug, "debug logging")
-	rootCmd.PersistentFlags().StringVarP(&global.Conf.ListenAddress, "ListenAddress", "l", global.Conf.ListenAddress, "HTTP listen address")
-	rootCmd.PersistentFlags().StringVarP(&global.Conf.SearXngUrl, "SearXngUrl", "u", global.Conf.SearXngUrl, "SearXNG URL")
-	rootCmd.PersistentFlags().IntVar(&global.Conf.RedirectMax, "RedirectMax", global.Conf.RedirectMax, "maximum redirects followed by web_fetch")
-	rootCmd.PersistentFlags().Int64Var(&global.Conf.FetchBodySizeMax, "FetchBodySizeMax", global.Conf.FetchBodySizeMax, "web_fetch response body limit in bytes")
-	rootCmd.PersistentFlags().Int64Var(&global.Conf.SearchBodySizeMax, "SearchBodySizeMax", global.Conf.SearchBodySizeMax, "searxng_search response body limit in bytes")
+	rootCmd.PersistentFlags().StringVarP(&conf.Conf.FileConf, "FileConf", "c", conf.Conf.FileConf, "config file path (default \""+conf.DefaultConfigFile+"\")")
+	rootCmd.PersistentFlags().BoolVarP(&conf.Conf.Debug, "Debug", "d", conf.Conf.Debug, "debug logging")
+	rootCmd.PersistentFlags().StringVarP(&conf.Conf.ListenAddress, "ListenAddress", "l", conf.Conf.ListenAddress, "HTTP listen address")
+	rootCmd.PersistentFlags().StringVarP(&conf.Conf.SearXngUrl, "SearXngUrl", "u", conf.Conf.SearXngUrl, "SearXNG URL")
+	rootCmd.PersistentFlags().IntVar(&conf.Conf.RedirectMax, "RedirectMax", conf.Conf.RedirectMax, "maximum redirects followed by web_fetch")
+	rootCmd.PersistentFlags().Int64Var(&conf.Conf.FetchBodySizeMax, "FetchBodySizeMax", conf.Conf.FetchBodySizeMax, "web_fetch response body limit in bytes")
+	rootCmd.PersistentFlags().Int64Var(&conf.Conf.SearchBodySizeMax, "SearchBodySizeMax", conf.Conf.SearchBodySizeMax, "searxng_search response body limit in bytes")
 
-	if err := global.Vip.BindPFlags(rootCmd.PersistentFlags()); err != nil {
+	if err := conf.Vip.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		panic("cmd.init: " + err.Error())
 	}
 }

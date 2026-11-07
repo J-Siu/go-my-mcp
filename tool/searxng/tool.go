@@ -27,7 +27,7 @@ import (
 
 	"log/slog"
 
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -47,7 +47,7 @@ func (t *TypeSearXng) New(searXngUrl string, bodySizeMax int64) (searXng *TypeSe
 	prefix := t.MyType + ".New"
 	t.BodySizeMax = bodySizeMax
 	t.SearXNG_URL = searXngUrl
-	t.url_parsed, t.Err = global.UrlParse(searXngUrl)
+	t.url_parsed, t.Err = helper.UrlParse(searXngUrl)
 	if t.Err == nil {
 		t.Initialized = true
 		slog.Debug(prefix, "config", slog.GroupValue(

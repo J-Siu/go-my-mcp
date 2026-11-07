@@ -27,7 +27,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/J-Siu/go-my-mcp/global"
+	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/J-Siu/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -47,7 +47,7 @@ func (t *TypeServer) New(listenAddress, apiKey string) *TypeServer {
 	// the SDK logs session and protocol activity through this logger
 	t.Server = mcp.NewServer(&mcp.Implementation{
 		Name:    "go-my-mcp",
-		Version: global.Version(),
+		Version: helper.Version(),
 	}, &mcp.ServerOptions{Logger: slog.Default()})
 	t.ListenAddress = listenAddress
 	t.Auth.Key = apiKey
