@@ -23,11 +23,22 @@ THE SOFTWARE.
 package tool
 
 import (
+	"log/slog"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type Tool interface {
-	Register(mcpServer *mcp.Server)
-}
+type Tool interface{ Register(mcpServer *mcp.Server) }
 
-var Tools []Tool
+type TypeTools []Tool
+
+var Tools TypeTools
+
+func (t *TypeTools) Add(tool Tool) { Tools = append(Tools, tool) }
+
+func (t *TypeTools) Register(server *mcp.Server) {
+	slog.Debug("tool.Tools.Register", "count", len(Tools))
+	for _, tool := range *t {
+		tool.Register(server)
+	}
+}

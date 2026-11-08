@@ -62,7 +62,4 @@ func (t *TypeWebSearch) Register(mcpServer *mcp.Server) {
 	)
 }
 
-func init() {
-	// Add an instance into the tool list
-	Tools = append(Tools, new(TypeWebSearch))
-}
+func init() { Tools.Add(new(TypeWebSearch)) }

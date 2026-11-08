@@ -182,17 +182,15 @@ The server must be running before the client connects.
 
 ## Adding Tool
 
-New tool file should go in `tool` directory
-
-1. Implement the `tool.Tool` interface
-2. Create an `init()` function to add an instance to the `tool.Tools` array
+1. New tool file should go in `tool` directory
+2. Implement the `tool.Tool` interface
+3. Create an `init()` function to add an instance to the `tool.Tools` array
 
     ```go
-    func init() {
-      // Add an instance into the tool list
-      Tools = append(Tools, new(New_Tool_Type))
-    }
+    func init() { Tools.Addnew(New_Tool_Type) }
     ```
+
+4. Add options in `conf.Conf.go` and `cmd.start.go`
 
 ## License
 

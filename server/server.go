@@ -49,10 +49,7 @@ func (t *TypeServer) Run() (err error) {
 	}, &mcp.ServerOptions{Logger: slog.Default()})
 
 	// Register all tools into Server
-	slog.Debug("tool.Register", "Tool Number", len(tool.Tools))
-	for _, tool := range tool.Tools {
-		tool.Register(t.Server)
-	}
+	tool.Tools.Register(t.Server)
 
 	// MCP server using mcp go-sdk
 	slog.Debug(prefix, "listen", conf.Conf.ListenAddress, "auth", conf.Conf.ApiKey != "")

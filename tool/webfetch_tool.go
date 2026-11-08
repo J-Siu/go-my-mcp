@@ -31,7 +31,7 @@ import (
 
 type TypeWebFetch struct{}
 
-// Register into a mcpServer
+// Register into a mcp.Server
 func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 	prefix := "TypeWebFetch.Register"
 
@@ -48,7 +48,4 @@ func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 	)
 }
 
-func init() {
-	// Add an instance into the tool list
-	Tools = append(Tools, new(TypeWebFetch))
-}
+func init() { Tools.Add(new(TypeWebFetch)) }

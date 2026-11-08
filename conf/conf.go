@@ -33,50 +33,40 @@ import (
 )
 
 const (
-	AppName = "go-my-mcp"
-
-	// Default config file location, used when --FileConf is not given
-	DefaultConfigFile = "~/.config/" + AppName + ".json"
-
+	AppName              = "go-my-mcp"
+	DefaultConfigFile    = "~/.config/" + AppName + ".json"
 	DefaultListenAddress = ":9000"
-	DefaultSearXngUrl    = "http://localhost:8080"
+	EnvPrefix            = "GO_MY_MCP"
+	txt_Redacted         = "<redacted>"
+)
 
-	// Maximum number of redirects a single web_fetch follows
-	DefaultRedirectMax = 10
-
-	// Response body limits in bytes
-	DefaultFetchBodySizeMax  = 2 << 20
+// default for web search
+const (
+	DefaultSearXngUrl        = "http://localhost:8080"
 	DefaultSearchBodySizeMax = 2 << 20
+)
 
-	// Environment variables are prefixed with this, followed by the upper-cased key name
-	EnvPrefix = "GO_MY_MCP"
-
-	// Replaces the API key in the `config` output, so it is never echoed
-	txt_Redacted = "<redacted>"
+// default for web fetch
+const (
+	DefaultFetchBodySizeMax = 2 << 20
+	DefaultRedirectMax      = 10
 )
 
 // Viper instance backing [Conf]. Cobra flags are bound to it from the `cmd` package.
 var Vip = viper.New()
 
 type TypeConf struct {
-	ApiKey            string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
-	Debug             bool   `json:"Debug"`
-	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
-	FileConf          string `json:"FileConf"`
-	ListenAddress     string `json:"ListenAddress"`
-	RedirectMax       int    `json:"RedirectMax"`
+	ApiKey        string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
+	Debug         bool   `json:"Debug"`
+	FileConf      string `json:"FileConf"`
+	ListenAddress string `json:"ListenAddress"`
+	SkipTlsVerify bool   `json:"SkipTlsVerify"`
+	// web fetch
+	FetchBodySizeMax int64 `json:"FetchBodySizeMax"`
+	RedirectMax      int   `json:"RedirectMax"`
+	// web search
 	SearXngUrl        string `json:"SearXngUrl"`
 	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
-	SkipTlsVerify     bool   `json:"SkipTlsVerify"`
-}
-
-// Runtime configuration, populated by [Conf.Load]
-var Conf = TypeConf{
-	FetchBodySizeMax:  DefaultFetchBodySizeMax,
-	ListenAddress:     DefaultListenAddress,
-	RedirectMax:       DefaultRedirectMax,
-	SearXngUrl:        DefaultSearXngUrl,
-	SearchBodySizeMax: DefaultSearchBodySizeMax,
 }
 
 func configKeys() []string {
@@ -161,6 +151,15 @@ func SafeConf(t *TypeConf) *TypeConf {
 		safe.ApiKey = txt_Redacted
 	}
 	return &safe
+}
+
+// Runtime configuration, populated by [Conf.Load]
+var Conf = TypeConf{
+	FetchBodySizeMax:  DefaultFetchBodySizeMax,
+	ListenAddress:     DefaultListenAddress,
+	RedirectMax:       DefaultRedirectMax,
+	SearXngUrl:        DefaultSearXngUrl,
+	SearchBodySizeMax: DefaultSearchBodySizeMax,
 }
 
 // cspell:words mapstructure
