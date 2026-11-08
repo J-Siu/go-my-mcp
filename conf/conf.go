@@ -59,22 +59,23 @@ const (
 var Vip = viper.New()
 
 type TypeConf struct {
-	FileConf          string `json:"FileConf"`
 	ApiKey            string `json:"ApiKey"` // Shared secret required from clients. Empty disables access control.
-	ListenAddress     string `json:"ListenAddress"`
-	SearXngUrl        string `json:"SearXngUrl"`
-	RedirectMax       int    `json:"RedirectMax"`
-	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
-	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
 	Debug             bool   `json:"Debug"`
+	FetchBodySizeMax  int64  `json:"FetchBodySizeMax"`
+	FileConf          string `json:"FileConf"`
+	ListenAddress     string `json:"ListenAddress"`
+	RedirectMax       int    `json:"RedirectMax"`
+	SearXngUrl        string `json:"SearXngUrl"`
+	SearchBodySizeMax int64  `json:"SearchBodySizeMax"`
+	SkipTlsVerify     bool   `json:"SkipTlsVerify"`
 }
 
 // Runtime configuration, populated by [Conf.Load]
 var Conf = TypeConf{
-	ListenAddress:     DefaultListenAddress,
-	SearXngUrl:        DefaultSearXngUrl,
-	RedirectMax:       DefaultRedirectMax,
 	FetchBodySizeMax:  DefaultFetchBodySizeMax,
+	ListenAddress:     DefaultListenAddress,
+	RedirectMax:       DefaultRedirectMax,
+	SearXngUrl:        DefaultSearXngUrl,
 	SearchBodySizeMax: DefaultSearchBodySizeMax,
 }
 

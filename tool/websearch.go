@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package searxng
+package tool
 
 import (
 	"context"
@@ -34,15 +34,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
-
-type SearchResult struct {
-	Content string `json:"content,omitempty" jsonschema:"result summary"`
-	Engine  string `json:"engine,omitempty" jsonschema:"search engine"`
-	Title   string `json:"title,omitempty" jsonschema:"result title"`
-	URL     string `json:"url" jsonschema:"result URL"`
-}
 
 type SearchInput struct {
 	Query string `json:"query" jsonschema:"the search query"`
@@ -52,12 +46,19 @@ type SearchOutput struct {
 	Results []SearchResult `json:"results" jsonschema:"search results"`
 }
 
-func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, input SearchInput) (
+type SearchResult struct {
+	Content string `json:"content,omitempty" jsonschema:"result summary"`
+	Engine  string `json:"engine,omitempty" jsonschema:"search engine"`
+	Title   string `json:"title,omitempty" jsonschema:"result title"`
+	URL     string `json:"url" jsonschema:"result URL"`
+}
+
+func (t *TypeWebSearch) Search(ctx context.Context, req *mcp.CallToolRequest, input SearchInput) (
 	*mcp.CallToolResult,
 	SearchOutput,
 	error,
 ) {
-	prefix := t.MyType + ".Search"
+	prefix := "TypeSearXng.Search"
 	start := time.Now()
 	// The request state lives in locals: t.Err is shared by every concurrent
 	// call on this long-lived tool.
@@ -78,7 +79,7 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 	// prepare search endpoint
 	slog.Debug(prefix, "query", input.Query)
 	if err == nil {
-		endpoint_str, err = url.JoinPath(t.SearXNG_URL, "search")
+		endpoint_str, err = url.JoinPath(conf.Conf.SearXngUrl, "search")
 	}
 	if err == nil {
 		httpUrl, err = url.Parse(endpoint_str)
@@ -96,7 +97,7 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 	if err == nil {
 		httpReq.Header.Set("Accept", "application/json")
 
-		if t.TlsCheck {
+		if conf.Conf.SkipTlsVerify {
 			httpClient = http.DefaultClient
 		} else {
 			httpClient = &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
@@ -113,7 +114,7 @@ func (t *TypeSearXng) Search(ctx context.Context, req *mcp.CallToolRequest, inpu
 		}
 	}
 	if err == nil {
-		body, err = io.ReadAll(io.LimitReader(httpRes.Body, t.BodySizeMax))
+		body, err = io.ReadAll(io.LimitReader(httpRes.Body, conf.Conf.SearchBodySizeMax))
 		if err != nil {
 			err = fmt.Errorf("SearXNG HTTP %s: %s: %w", httpRes.Status, strings.TrimSpace(string(body)), err)
 		}

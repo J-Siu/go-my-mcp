@@ -22,8 +22,12 @@ THE SOFTWARE.
 
 package tool
 
-import "github.com/modelcontextprotocol/go-sdk/mcp"
+import (
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+)
 
 type Tool interface {
 	Register(mcpServer *mcp.Server)
 }
+
+var Tools []Tool

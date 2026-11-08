@@ -20,48 +20,49 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package webfetch
+package tool
 
 import (
+	"net/url"
+
 	"log/slog"
 
+	"github.com/J-Siu/go-my-mcp/conf"
+	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type TypeWebFetch struct {
-	Initialized bool   `json:"Initialized,omitempty"`
-	MyType      string `json:"MyType"`
-
-	BodySizeMax int64
-	RedirectMax int
+// TypeWebSearch - using SearXNG
+type TypeWebSearch struct {
+	UrlParsed *url.URL // Parsed URL object of SearXNG_URL
 }
 
-func (t *TypeWebFetch) New(bodySizeMax int64, redirectMax int) (*TypeWebFetch, error) {
-	t.MyType = "TypeWebFetch"
-	prefix := t.MyType + ".New"
-	t.BodySizeMax = bodySizeMax
-	t.RedirectMax = redirectMax
-	t.Initialized = true
-	slog.Debug(prefix, "config", slog.GroupValue(
-		slog.Int64("BodySizeMax", t.BodySizeMax),
-		slog.Int("RedirectMax", t.RedirectMax),
-	))
-	return t, nil
-}
-
-// Register SearXNG with mcpServer
-func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
-	prefix := t.MyType + ".Register"
-	if !t.Initialized {
-		slog.Error(prefix + ": not initialized")
+// Register into a mcp.Server
+func (t *TypeWebSearch) Register(mcpServer *mcp.Server) {
+	prefix := "TypeSearXng.Register"
+	var err error
+	t.UrlParsed, err = helper.UrlParse(conf.Conf.SearXngUrl)
+	if err == nil {
+		slog.Debug(prefix, "config", slog.GroupValue(
+			slog.String("SearXngUrl", conf.Conf.SearXngUrl),
+			slog.Int64("BodySizeMax", conf.Conf.SearchBodySizeMax),
+		))
+	} else {
+		slog.Error(prefix + ": " + err.Error())
+	}
+	if err != nil {
 		return
 	}
 	mcp.AddTool(
 		mcpServer,
 		&mcp.Tool{
-			Name:        "web_fetch",
-			Description: "fetch a web page by URL, following redirects"},
-		t.Fetch,
+			Name:        "web_search",
+			Description: "web search"},
+		t.Search,
 	)
-	slog.Debug(prefix + ": registered")
+}
+
+func init() {
+	// Add an instance into the tool list
+	Tools = append(Tools, new(TypeWebSearch))
 }

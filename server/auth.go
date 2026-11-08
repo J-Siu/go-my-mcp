@@ -27,6 +27,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/J-Siu/go-my-mcp/conf"
 )
 
 // APIKeyHeader - alternative to the standard Authorization header
@@ -52,7 +54,7 @@ func (t *TypeAuth) Middleware(next http.Handler) http.Handler {
 		if !ok || subtle.ConstantTimeCompare([]byte(presented), expected) != 1 {
 			slog.Warn("TypeAuth.Middleware: unauthorized",
 				"remote", r.RemoteAddr, "path", r.URL.Path)
-			w.Header().Set("WWW-Authenticate", `Bearer realm="go-my-mcp"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="`+conf.AppName+`"`)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

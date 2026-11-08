@@ -6,19 +6,19 @@ MCP server provides SearXNG search and generic web page fetching.
 
 | Tool | Description | Input | Output |
 | --- | --- | --- | --- |
-| `searxng_search` | Web search via SearXNG | `query` (string) | `results[]` — `url`, `title`, `content`, `engine` |
+| `web_search` | Web search using SearXNG backend | `query` (string) | `results[]` — `url`, `title`, `content`, `engine` |
 | `web_fetch` | Fetch a web page by URL, following redirects | `url` (string, HTTP/HTTPS) | `content`, `url` (final), `status_code`, `content_type`, `redirect_count` |
 
 Notes:
 
 - `web_fetch` follows up to `RedirectMax` redirects (default 10) and times out after 15s. Every hop must be a plain `http`/`https` URL without embedded credentials; `redirect_count` reports how many hops were followed, and `url` is the final URL. `RedirectMax: 0` disables following — the 3xx response is returned as-is.
-- Response body limits are configurable per tool: `FetchBodySizeMax` for `web_fetch`, `SearchBodySizeMax` for `searxng_search` (both default to 2 MiB).
-- `searxng_search` requires a SearXNG instance with the JSON output format enabled.
+- Response body limits are configurable per tool: `FetchBodySizeMax` for `web_fetch`, `SearchBodySizeMax` for `web_search` (both default to 2 MiB).
+- `web_search` requires a SearXNG instance with the JSON output format enabled.
 
 ## Requirements
 
 - Go 1.27.2 or newer
-- A reachable SearXNG instance (only for `searxng_search`)
+- A reachable SearXNG instance (only for `web_search`)
 
 ## Build and Install
 
@@ -92,7 +92,7 @@ Lowest to highest:
 | `SearXngUrl` | string | `http://localhost:8080` | Base URL of the SearXNG instance |
 | `RedirectMax` | int | `10` | Max redirects followed by `web_fetch`; `0` disables following |
 | `FetchBodySizeMax` | int | `2097152` (2 MiB) | `web_fetch` response body limit in bytes |
-| `SearchBodySizeMax` | int | `2097152` (2 MiB) | `searxng_search` response body limit in bytes |
+| `SearchBodySizeMax` | int | `2097152` (2 MiB) | `web_search` response body limit in bytes |
 
 `ApiKey` has no flag — it is read from the config file or the environment only, so it stays out of shell history and `ps` output. `config` always shows it as `<redacted>`.
 
@@ -117,7 +117,7 @@ These are persistent (root) flags, so they work with every sub command:
 | `-u`, `--SearXngUrl` | `SearXngUrl` | `http://localhost:8080` | SearXNG base URL |
 | | `--RedirectMax` | `10` | Max redirects followed by `web_fetch` |
 | | `--FetchBodySizeMax` | `2097152` | `web_fetch` body limit in bytes |
-| | `--SearchBodySizeMax` | `2097152` | `searxng_search` body limit in bytes |
+| | `--SearchBodySizeMax` | `2097152` | `web_search` body limit in bytes |
 | `-d`, `--Debug` | `Debug` | `false` | Debug logging |
 
 ### Access control
@@ -179,6 +179,20 @@ The server must be running before the client connects.
 | [global/](global) | Configuration type, viper wiring and shared helpers |
 | [server/](server) | MCP server construction and HTTP transport |
 | [tool/](tool) | Tool interface and implementations (`searxng`, `webfetch`) |
+
+## Adding Tool
+
+New tool file should go in `tool` directory
+
+1. Implement the `tool.Tool` interface
+2. Create an `init()` function to add an instance to the `tool.Tools` array
+
+    ```go
+    func init() {
+      // Add an instance into the tool list
+      Tools = append(Tools, new(New_Tool_Type))
+    }
+    ```
 
 ## License
 

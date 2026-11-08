@@ -23,10 +23,7 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/J-Siu/go-my-mcp/server"
-	"github.com/J-Siu/go-my-mcp/tool/searxng"
-	"github.com/J-Siu/go-my-mcp/tool/webfetch"
 	"github.com/spf13/cobra"
 )
 
@@ -35,18 +32,8 @@ var startCmd = &cobra.Command{
 	Use:     "start",
 	Aliases: []string{"s"},
 	Short:   "Start the SearXNG MCP server over HTTP",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		sx, err := new(searxng.TypeSearXng).New(conf.Conf.SearXngUrl, conf.Conf.SearchBodySizeMax)
-		if err == nil {
-			wf, err := new(webfetch.TypeWebFetch).New(conf.Conf.FetchBodySizeMax, conf.Conf.RedirectMax)
-			if err == nil {
-				err = new(server.TypeServer).
-					New(conf.Conf.ListenAddress, conf.Conf.ApiKey).
-					Register(sx).
-					Register(wf).
-					Run()
-			}
-		}
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		err = server.Server.Run()
 		if err != nil {
 			// a bind failure is an environment problem, not a usage error
 			cmd.SilenceUsage = true

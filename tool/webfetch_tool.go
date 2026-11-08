@@ -20,62 +20,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package searxng
+package tool
 
 import (
-	"net/url"
-
 	"log/slog"
 
-	"github.com/J-Siu/go-my-mcp/helper"
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type TypeSearXng struct {
-	Err         error  `json:"Err,omitempty"`
-	Initialized bool   `json:"Initialized,omitempty"`
-	MyType      string `json:"MyType"`
+type TypeWebFetch struct{}
 
-	SearXNG_URL string
-	BodySizeMax int64
-	url_parsed  *url.URL // Parsed URL object of SearXNG_URL
-	TlsCheck    bool
-}
+// Register into a mcpServer
+func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
+	prefix := "TypeWebFetch.Register"
 
-func (t *TypeSearXng) New(searXngUrl string, bodySizeMax int64) (searXng *TypeSearXng, err error) {
-	t.MyType = "TypeSearXng"
-	prefix := t.MyType + ".New"
-	t.BodySizeMax = bodySizeMax
-	t.SearXNG_URL = searXngUrl
-	t.url_parsed, t.Err = helper.UrlParse(searXngUrl)
-	if t.Err == nil {
-		t.Initialized = true
-		slog.Debug(prefix, "config", slog.GroupValue(
-			slog.String("SearXngUrl", t.SearXNG_URL),
-			slog.Int64("BodySizeMax", t.BodySizeMax),
-		))
-	} else {
-		slog.Error(prefix + ": " + t.Err.Error())
-	}
-	return t, t.Err
-}
-
-// Register SearXNG with mcpServer
-func (t *TypeSearXng) Register(mcpServer *mcp.Server) {
-	prefix := t.MyType + ".Register"
-	if t.Err != nil {
-		return
-	}
-	if !t.Initialized {
-		slog.Error(prefix + ": not initialized")
-		return
-	}
+	slog.Debug(prefix, "config", slog.GroupValue(
+		slog.Int64("BodySizeMax", conf.Conf.FetchBodySizeMax),
+		slog.Int("RedirectMax", conf.Conf.RedirectMax),
+	))
 	mcp.AddTool(
 		mcpServer,
 		&mcp.Tool{
-			Name:        "searxng_search",
-			Description: "web search"},
-		t.Search,
+			Name:        "web_fetch",
+			Description: "fetch a web page by URL, following redirects"},
+		t.Fetch,
 	)
-	slog.Debug(prefix + ": registered")
+}
+
+func init() {
+	// Add an instance into the tool list
+	Tools = append(Tools, new(TypeWebFetch))
 }

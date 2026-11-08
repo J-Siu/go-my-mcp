@@ -27,45 +27,41 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/J-Siu/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 type TypeServer struct {
-	MyType string `json:"MyType"`
-
-	ListenAddress string
-	Server        *mcp.Server
-	Auth          TypeAuth
+	Server *mcp.Server
+	Auth   TypeAuth
 }
 
-// New - listenAddress is where to bind; apiKey, when not empty, is required
-// from every client
-func (t *TypeServer) New(listenAddress, apiKey string) *TypeServer {
-	t.MyType = "TypeServer"
-	// the SDK logs session and protocol activity through this logger
+// Run - register all tools in `tool.Tools` and start mcp server
+func (t *TypeServer) Run() (err error) {
+	prefix := "TypeServer.Run"
+
+	t.Auth.Key = conf.Conf.ApiKey
 	t.Server = mcp.NewServer(&mcp.Implementation{
-		Name:    "go-my-mcp",
+		Name:    conf.AppName,
 		Version: helper.Version(),
 	}, &mcp.ServerOptions{Logger: slog.Default()})
-	t.ListenAddress = listenAddress
-	t.Auth.Key = apiKey
-	return t
-}
 
-// Register tool
-func (t *TypeServer) Register(tool tool.Tool) *TypeServer {
-	tool.Register(t.Server)
-	return t
-}
+	// Register all tools into Server
+	slog.Debug("tool.Register", "Tool Number", len(tool.Tools))
+	for _, tool := range tool.Tools {
+		tool.Register(t.Server)
+	}
 
-func (t *TypeServer) Run() error {
-	prefix := t.MyType + ".Run"
 	// MCP server using mcp go-sdk
-	handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
-		return t.Server
-	}, nil)
-	slog.Debug(prefix, "listen", t.ListenAddress, "auth", t.Auth.Key != "")
-	return fmt.Errorf("%s: %w", prefix, http.ListenAndServe(t.ListenAddress, t.Auth.Middleware(handler)))
+	slog.Debug(prefix, "listen", conf.Conf.ListenAddress, "auth", conf.Conf.ApiKey != "")
+	handler := mcp.NewStreamableHTTPHandler(
+		func(*http.Request) *mcp.Server { return t.Server },
+		nil,
+	)
+	err = http.ListenAndServe(conf.Conf.ListenAddress, t.Auth.Middleware(handler))
+	return fmt.Errorf("%s: %w", prefix, err)
 }
+
+var Server TypeServer

@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package webfetch
+package tool
 
 import (
 	"context"
@@ -31,6 +31,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -52,7 +53,7 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 	FetchOutput,
 	error,
 ) {
-	prefix := t.MyType + ".Fetch"
+	prefix := "TypeWebFetch.Fetch"
 	start := time.Now()
 	// The request state lives in locals: t.Err is shared by every concurrent
 	// call on this long-lived tool.
@@ -79,12 +80,12 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 		client := &http.Client{
 			Timeout: 15 * time.Second,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if t.RedirectMax == 0 {
+				if conf.Conf.RedirectMax == 0 {
 					return http.ErrUseLastResponse
 				}
 				redirects = len(via)
-				if redirects >= t.RedirectMax {
-					return fmt.Errorf("stopped after %d redirects", t.RedirectMax)
+				if redirects >= conf.Conf.RedirectMax {
+					return fmt.Errorf("stopped after %d redirects", conf.Conf.RedirectMax)
 				}
 				// each hop must obey the same rules as the requested URL
 				if _, err := helper.UrlParse(req.URL.String()); err != nil {
@@ -112,10 +113,10 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 		}
 	}
 	if err == nil {
-		body, err = io.ReadAll(io.LimitReader(httpRes.Body, t.BodySizeMax+1))
+		body, err = io.ReadAll(io.LimitReader(httpRes.Body, conf.Conf.FetchBodySizeMax+1))
 	}
-	if err == nil && len(body) > int(t.BodySizeMax) {
-		err = fmt.Errorf("Exceeds the %d-byte limit", t.BodySizeMax)
+	if err == nil && len(body) > int(conf.Conf.FetchBodySizeMax) {
+		err = fmt.Errorf("Exceeds the %d-byte limit", conf.Conf.FetchBodySizeMax)
 	}
 	if err != nil {
 		// the caller only gets the error text, so keep the details here

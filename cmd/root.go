@@ -57,13 +57,14 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&conf.Conf.FileConf, "FileConf", "c", conf.Conf.FileConf, "config file path (default \""+conf.DefaultConfigFile+"\")")
 	rootCmd.PersistentFlags().BoolVarP(&conf.Conf.Debug, "Debug", "d", conf.Conf.Debug, "debug logging")
+	rootCmd.PersistentFlags().BoolVarP(&conf.Conf.SkipTlsVerify, "SkipTlsVerify", "", conf.Conf.SkipTlsVerify, "skip TLS verify")
+	rootCmd.PersistentFlags().Int64VarP(&conf.Conf.FetchBodySizeMax, "FetchBodySizeMax", "", conf.Conf.FetchBodySizeMax, "web_fetch response body limit in bytes")
+	rootCmd.PersistentFlags().Int64VarP(&conf.Conf.SearchBodySizeMax, "SearchBodySizeMax", "", conf.Conf.SearchBodySizeMax, "web_search response body limit in bytes")
+	rootCmd.PersistentFlags().IntVarP(&conf.Conf.RedirectMax, "RedirectMax", "", conf.Conf.RedirectMax, "maximum redirects followed by web_fetch")
+	rootCmd.PersistentFlags().StringVarP(&conf.Conf.FileConf, "FileConf", "c", conf.Conf.FileConf, "config file path (default: "+conf.DefaultConfigFile+")")
 	rootCmd.PersistentFlags().StringVarP(&conf.Conf.ListenAddress, "ListenAddress", "l", conf.Conf.ListenAddress, "HTTP listen address")
 	rootCmd.PersistentFlags().StringVarP(&conf.Conf.SearXngUrl, "SearXngUrl", "u", conf.Conf.SearXngUrl, "SearXNG URL")
-	rootCmd.PersistentFlags().IntVar(&conf.Conf.RedirectMax, "RedirectMax", conf.Conf.RedirectMax, "maximum redirects followed by web_fetch")
-	rootCmd.PersistentFlags().Int64Var(&conf.Conf.FetchBodySizeMax, "FetchBodySizeMax", conf.Conf.FetchBodySizeMax, "web_fetch response body limit in bytes")
-	rootCmd.PersistentFlags().Int64Var(&conf.Conf.SearchBodySizeMax, "SearchBodySizeMax", conf.Conf.SearchBodySizeMax, "searxng_search response body limit in bytes")
 
 	if err := conf.Vip.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		panic("cmd.init: " + err.Error())

@@ -1,3 +1,9 @@
+- v1.0.7
+  - Doc: Update README
+  - Refactor
+    - Types use `Conf` directly
+    - Flatten `tool` dir structure to avoid `init()` issue (or manual import)
+    - Add `tool.Tools` to hold all tool instances. Eliminated code change when adding new tool
 - v1.0.6
   - Cleanup unused code
   - Fix log format
@@ -49,3 +55,5 @@
     - `config` and `version` write to stdout so they can be piped; `cmd.Println` writes to stderr
 - v1.0.0
   - Feature complete
+
+<!-- cspell:words APIKEY -->
