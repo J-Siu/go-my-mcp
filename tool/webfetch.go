@@ -55,8 +55,6 @@ func (t *TypeWebFetch) Fetch(ctx context.Context, req *mcp.CallToolRequest, inpu
 ) {
 	prefix := "TypeWebFetch.Fetch"
 	start := time.Now()
-	// The request state lives in locals: t.Err is shared by every concurrent
-	// call on this long-lived tool.
 	var (
 		body       []byte
 		err        error
