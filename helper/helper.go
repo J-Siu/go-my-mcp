@@ -23,24 +23,10 @@ THE SOFTWARE.
 package helper
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 )
-
-// Expand Linux `~` and environment variable in string
-func TildeEnvExpand(strIn string) (strOut string) {
-	if strIn == "~" {
-		strOut = "$HOME"
-	} else if strings.HasPrefix(strIn, "~/") {
-		strOut = "$HOME" + strIn[1:]
-	} else {
-		strOut = strIn
-	}
-	return os.ExpandEnv(strOut)
-}
 
 // Check for http, https and empty host
 func UrlParse(url_str string) (url_parsed *url.URL, err error) {
@@ -58,21 +44,4 @@ func UrlParse(url_str string) (url_parsed *url.URL, err error) {
 		err = fmt.Errorf("%q is not a valid URL: must not contain credentials", url_str)
 	}
 	return url_parsed, err
-}
-
-func Struct(prefix string, in any, out *string) (err error) {
-	var b []byte
-	if prefix != "" {
-		*out = prefix + ":" + NewLine
-	}
-	if b, err = json.MarshalIndent(in, "", "  "); err == nil {
-		*out += string(b)
-	}
-	return
-}
-
-// if json(sonic).MarshalIndent err, return empty
-func Struct2String(prefix string, in any) (s string) {
-	Struct(prefix, in, &s)
-	return
 }

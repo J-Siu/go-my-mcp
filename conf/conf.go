@@ -28,7 +28,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/J-Siu/go-my-mcp/helper"
+	"github.com/J-Siu/go-helper-mini/file"
 	"github.com/spf13/viper"
 )
 
@@ -92,7 +92,7 @@ func init() {
 	Vip.AutomaticEnv()
 
 	// keep the logger correct even before the first Load (e.g. init-time errors)
-	helper.EnableDebug(false)
+	EnableDebug(false)
 }
 
 // Load - resolve the effective configuration. Precedence, lowest to highest:
@@ -109,7 +109,7 @@ func (t *TypeConf) Load() error {
 	if configFile == "" {
 		configFile = DefaultConfigFile
 	}
-	Vip.SetConfigFile(helper.TildeEnvExpand(configFile))
+	Vip.SetConfigFile(file.TildeEnvExpand(configFile))
 	if err = Vip.ReadInConfig(); err != nil {
 		if Vip.GetBool("Debug") {
 			slog.Warn("could not read config file; continuing without it", "file", configFile, "error", err)
@@ -118,7 +118,7 @@ func (t *TypeConf) Load() error {
 	values = *t
 	if err = Vip.Unmarshal(&values); err == nil {
 		values.FileConf = configFile
-		helper.EnableDebug(values.Debug) // Set the logger before validating
+		EnableDebug(values.Debug)
 		err = values.validate()
 	}
 	if err == nil {

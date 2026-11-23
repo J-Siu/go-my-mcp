@@ -27,8 +27,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/J-Siu/go-helper-mini/ver"
 	"github.com/J-Siu/go-my-mcp/conf"
-	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/J-Siu/go-my-mcp/tool"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -45,7 +45,7 @@ func (t *TypeServer) Run() (err error) {
 	t.Auth.Key = conf.Conf.ApiKey
 	t.Server = mcp.NewServer(&mcp.Implementation{
 		Name:    conf.AppName,
-		Version: helper.Version(),
+		Version: ver.BuildVersion(),
 	}, &mcp.ServerOptions{Logger: slog.Default()})
 
 	// Register all tools into Server

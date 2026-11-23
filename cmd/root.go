@@ -26,15 +26,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/J-Siu/go-helper-mini/str"
+	"github.com/J-Siu/go-helper-mini/ver"
 	"github.com/J-Siu/go-my-mcp/conf"
-	"github.com/J-Siu/go-my-mcp/helper"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
 	Use:     conf.AppName,
 	Short:   "MCP for SearXNG",
-	Version: helper.Version(),
+	Version: ver.BuildVersion(),
 	// Resolve the effective configuration once for every sub command, after flag parsing
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) (err error) {
 		if err := conf.Conf.Load(); err != nil {
@@ -42,8 +43,8 @@ var rootCmd = &cobra.Command{
 			cmd.SilenceUsage = true
 		}
 		if conf.Conf.Debug {
-			fmt.Println("Version:", helper.Version())
-			fmt.Println(helper.Struct2String("Conf", &conf.Conf))
+			fmt.Println("Version:", ver.BuildVersion())
+			fmt.Println(str.Struct2String("Conf", &conf.Conf, true))
 		}
 		return err
 	},

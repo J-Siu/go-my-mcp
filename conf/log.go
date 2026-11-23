@@ -20,17 +20,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-package helper
+package conf
 
-import "runtime/debug"
+import (
+	"log/slog"
+	"os"
+)
 
-// Version - version of this binary, taken from the build info the Go toolchain
-// stamps into every binary. A build from a tagged, clean checkout reports the
-// tag, an untagged checkout a pseudo-version, and `go run` reports "(devel)".
-func Version() (version string) {
-	version = "(unknown)"
-	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" {
-		version = bi.Main.Version
+// EnableDebug - install the process-wide slog logger, honoring the Debug flag
+func EnableDebug(enable bool) {
+	level := slog.LevelInfo
+	if enable {
+		level = slog.LevelDebug
 	}
-	return version
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	})))
 }
