@@ -29,6 +29,7 @@ import (
 
 	"github.com/J-Siu/go-my-mcp/conf"
 	"github.com/J-Siu/go-my-mcp/helper"
+	"github.com/J-Siu/go-my-mcp/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -62,4 +63,4 @@ func (t *TypeWebSearch) Register(mcpServer *mcp.Server) {
 	)
 }
 
-func init() { Tools.Add(new(TypeWebSearch)) }
+func init() { server.Tools.Add(new(TypeWebSearch)) }

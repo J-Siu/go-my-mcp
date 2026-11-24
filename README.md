@@ -1,6 +1,8 @@
 # go-my-mcp
 
-MCP server provides SearXNG search and generic web page fetching.
+A MCP server provides SearXNG search and generic web page fetching.
+
+Project can act as a framework to implement additional mcp tools.
 
 ## Tools
 
@@ -17,7 +19,7 @@ Notes:
 
 ## Requirements
 
-- Go 1.27.2 or newer
+- Go 1.27.4 or newer
 - A reachable SearXNG instance (only for `web_search`)
 
 ## Build and Install
@@ -177,20 +179,21 @@ The server must be running before the client connects.
 | [main.go](main.go) | Entry point, calls `cmd.Execute()` |
 | [cmd/](cmd) | CLI commands: `root`, `start`, `config` |
 | [global/](global) | Configuration type, viper wiring and shared helpers |
-| [server/](server) | MCP server construction and HTTP transport |
-| [tool/](tool) | Tool interface and implementations (`searxng`, `webfetch`) |
+| [server/](server) | MCP server construction and HTTP transport and `Tool` interface |
+| [tool/](tool) | Tool implementations (`searxng`, `webfetch`) |
 
 ## Adding Tool
 
-1. New tool file should go in `tool` directory
-2. Implement the `tool.Tool` interface
-3. Create an `init()` function to add an instance to the `tool.Tools` array
+1. New tool file can go in `tool` directory
+2. Implement the `server.Tool` interface
+   1. Create `Register(mcpServer *mcp.Server)` that can register the tool with `mcpServer`
+   2. Create an `init()` function to add an instance to the `server.Tools` array
 
-    ```go
-    func init() { Tools.Addnew(New_Tool_Type) }
-    ```
+      ```go
+      func init() { server.Tools.Add(New_Tool_Type) }
+      ```
 
-4. Add options in `conf.Conf.go` and `cmd.start.go`
+3. Add options in `conf.Conf.go` and `cmd.start.go`
 
 ## License
 

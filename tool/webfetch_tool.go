@@ -26,6 +26,7 @@ import (
 	"log/slog"
 
 	"github.com/J-Siu/go-my-mcp/conf"
+	"github.com/J-Siu/go-my-mcp/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -48,4 +49,4 @@ func (t *TypeWebFetch) Register(mcpServer *mcp.Server) {
 	)
 }
 
-func init() { Tools.Add(new(TypeWebFetch)) }
+func init() { server.Tools.Add(new(TypeWebFetch)) }
